@@ -436,7 +436,7 @@ int main( int argc, char *argv[] )
 
   std::ofstream out("test-small.pgm", std::ios::binary | std::ios::out);  
   {
-    PixelMapReader r(pix1);
+    PixelMapReader r(pix2);
     save_pgm( r, out);
   }
   return 0;
