@@ -2,25 +2,26 @@
 #include <iostream>
 #include <stdexcept>
 #include <cmath>
-#include "ifs-rand.hpp"
 
 size_t read_pgm_header_int(std::istream &ifile);
 void skip_to_eol(std::istream &ifile);
 
 
-void save_pgm( const PixelMap &pixels, std::ostream &ofile, double gamma/*=1.0*/ )
+void save_pgm( MonochromeImageReader &pixels, std::ostream &ofile )
 {
   ofile << "P5\n"; //binary graymap
-  ofile << pixels.width << " " << pixels.height << "\n";
+  ofile << pixels.width() << " " << pixels.height() << "\n";
   ofile << "255\n";
-  PixelMap::pixel_t max_value = pixels.max_value();
-  if (max_value < 1) max_value=1;
-  double igamma = 1.0/gamma;
-  for( size_t i=0; i<pixels.pixels.size(); ++i){
-    double v = (double)pixels.pixels[i]/(double)max_value;
-    v = pow(v, igamma);
-    unsigned char g = (unsigned char)(int)(v*255);
-    ofile << (char)g;
+
+  const size_t BUF_SIZE = 1024;
+
+  unsigned char buffer[BUF_SIZE];
+  size_t sz = pixels.width()*pixels.height();
+  size_t nWritten = 0;
+  while( nWritten < sz ){
+    size_t nRead = pixels.read_pixels(buffer, BUF_SIZE);
+    ofile.write( (const char*)buffer, nRead );
+    nWritten += nRead;
   };
 }
 
@@ -69,7 +70,7 @@ size_t read_pgm_header_int(std::istream &ifile)
   }
   return x;
 }
-PixelMap * read_pgm( std::istream &ifile )
+void read_pgm( std::istream &ifile, MonochromeImageWriter &pixels )
 {
   size_t w, h, maxcolor;
   read_pgm_header( ifile, w, h, maxcolor );
@@ -77,17 +78,20 @@ PixelMap * read_pgm( std::istream &ifile )
     throw std::logic_error( "only 8-bit supported");
   if (w ==0 || h==0 )
     throw std::logic_error( "zero size of image");
+  pixels.set_size(w,h);
+
   std::cerr<<"Reading image "<<w<<"x"<<h<<" with "<<maxcolor<<" colors\n";
-  PixelMap *pix = new PixelMap(w,h);
-  for(size_t y=0; y<h; ++y){
-    for(size_t x=0; x<w; ++x){
-      char c;
-      ifile.read(&c,1);
-      int cval = (int)((unsigned char)c);
-      pix->pixel_ref(x,y)=cval;
-    }
+  const size_t BUF_SIZE=1024;
+  unsigned char buffer[BUF_SIZE];
+
+  size_t sz = w*h;
+  size_t nLeft = sz;
+  while (ifile && (nLeft != 0)){
+    ifile.read((char *)buffer, std::min(BUF_SIZE, nLeft));
+    size_t nRead = ifile.gcount();
+    pixels.write_pixels(buffer, nRead);
+    nLeft -= nRead;
   }
-  return pix;
 }
 
 

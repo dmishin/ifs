@@ -12,6 +12,7 @@
 #include "ifs-rand.hpp"
 #include "geometry.hpp"
 #include "pgm.hpp"
+#include "pixelmap.hpp"
 
 const double GLOBAL_NOISE_AMOUNT = 0.005; //defines
 const double POINT_NOISE_AMOUNT = 0.1; //defines
@@ -86,39 +87,6 @@ point_t Ruleset::apply( const point_t p )const
   }
   return rules[b].transform.apply(p);
 };
-
-void PixelMap::scale( double k )
-{
-  for(size_t i=0; i<pixels.size(); ++i){
-    pixels[i]=(pixel_t)(pixels[i]*k);
-  }
-}
-PixelMap::PixelMap( size_t w, size_t h )
-{
-  width=w;
-  height=h;
-  pixels.resize(w*h);
-  fill(0);
-}
-void PixelMap::fill( pixel_t v )
-{
-  for(size_t i=0; i<pixels.size(); ++i){
-    pixels[i]=v;
-  }
-}
-bool PixelMap::contains( int x, int y )const
-{
-  return (x >= 0) && (y >=0) &&
-    (x < (int)width) && (y < (int)height);
-}
-PixelMap::pixel_t PixelMap::max_value()const
-{
-  pixel_t v=0;
-  for(size_t i=0; i<pixels.size(); ++i){
-    if (v<pixels[i]) v=pixels[i];
-  }
-  return v;
-}
 
 
 void render_ruleset( PixelMap &pixels, 
@@ -437,15 +405,19 @@ int main( int argc, char *argv[] )
 {
   srand(time(NULL));
   std::ifstream ifile("sample-small.pgm", std::ios::binary | std::ios::in);
-  PixelMap *pix1 = read_pgm(ifile);
-  normalize_pixmap( *pix1 );
+  PixelMap pix1(0,0);
+  {
+    PixelMapWriter w(pix1);
+    read_pgm(ifile, w);
+  }
+  normalize_pixmap( pix1 );
 
   GenePoolRecordT result = 
     genetical_optimize( 10, //pool
 			8, //orp
 			1, //mut
 			32, //cross
-			*pix1,
+			pix1,
 			1000,
 			50);
 
@@ -458,6 +430,9 @@ int main( int argc, char *argv[] )
 		  pix2.width*pix2.height*100 );
 
   std::ofstream out("test-small.pgm", std::ios::binary | std::ios::out);  
-  save_pgm( pix2, out, 5.0 );
+  {
+    PixelMapReader r(pix2);
+    save_pgm( r, out);
+  }
   return 0;
 }
