@@ -360,6 +360,7 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
       throw std::logic_error("assertion: fitness sort is bad");
 
     //Filter old records
+    /*
     {
       size_t i=0;
       while(i < pool.size()){
@@ -371,6 +372,7 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
 	}
       }
     }
+    */
     if (pool.size() > pool_size){
       for( GenePoolT::iterator i = pool.begin() + pool_size;
 	   i < pool.end();
@@ -411,7 +413,7 @@ int main( int argc, char *argv[] )
     read_pgm(ifile, w);
   }
   normalize_pixmap( pix1 );
-
+  
   GenePoolRecordT result = 
     genetical_optimize( 10, //pool
 			8, //orp
@@ -423,15 +425,18 @@ int main( int argc, char *argv[] )
 
   std::cout<<"Genetical optimization finished, showing the result"<<std::endl;
   PixelMap pix2(800, 800);
+
   render_ruleset( pix2, 
 		  point_t(-1.5,-1.5),
 		  point_t(3,3),
 		  *result.genome,
 		  pix2.width*pix2.height*100 );
   pix2.normalize(1);
+  pix2.apply_gamma(5);
+
   std::ofstream out("test-small.pgm", std::ios::binary | std::ios::out);  
   {
-    PixelMapReader r(pix2);
+    PixelMapReader r(pix1);
     save_pgm( r, out);
   }
   return 0;

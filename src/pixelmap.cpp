@@ -1,3 +1,4 @@
+#include <cmath>
 #include "pixelmap.hpp"
 
 void PixelMap::normalize(PixelMap::pixel_t scale_to)
@@ -5,6 +6,13 @@ void PixelMap::normalize(PixelMap::pixel_t scale_to)
   scale(double(scale_to)/double(max_value()));
 }
 
+void PixelMap::apply_gamma( double g )
+{
+  double p = 1.0/g;
+  for(size_t i=0; i<pixels.size(); ++i){
+    pixels[i]=(pixel_t)pow((double)pixels[i], p);
+  }  
+}
 void PixelMap::scale( double k )
 {
   for(size_t i=0; i<pixels.size(); ++i){
@@ -59,3 +67,4 @@ size_t PixelMapReader::read_pixels(unsigned char *pixels, size_t n_pixels)
   cur_pixel_index += n_read;
   return n_read;
 }
+
