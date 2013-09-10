@@ -418,7 +418,7 @@ int main( int argc, char *argv[] )
 			1, //mut
 			32, //cross
 			pix1,
-			1000,
+			100,
 			50);
 
   std::cout<<"Genetical optimization finished, showing the result"<<std::endl;
@@ -428,7 +428,7 @@ int main( int argc, char *argv[] )
 		  point_t(3,3),
 		  *result.genome,
 		  pix2.width*pix2.height*100 );
-
+  pix2.normalize(1);
   std::ofstream out("test-small.pgm", std::ios::binary | std::ios::out);  
   {
     PixelMapReader r(pix2);
