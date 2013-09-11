@@ -28,14 +28,14 @@ public:
 class PixelMapping{
   friend class PixelMappingBuilder;
 public:
+  //Table of all pixel targets.
+  typedef std::vector< source_pixel_ref_t > targets_array;
+private:
   //Index of the first target for each pixel.
   //Last source is determined by the next index.
   //Contains one more value than number of pizels in the image
   std::vector< size_t > pixel_target_indices; 
-  //Table of all pixel targets.
-  typedef std::vector< source_pixel_ref_t > targets_array;
   targets_array pixel_targets;
-private:
   //size of the image
   size_t width_, height_; 
 protected:
@@ -44,7 +44,7 @@ protected:
 public:
   size_t width()const{ return width_; };
   size_t height()const{ return height_; };
-
+  size_t n_relations()const{ return pixel_targets.size(); };
   PixelMapping( size_t w, size_t h );
   void get_targets_range(size_t idx, 
 			 targets_array::const_iterator &ti, 
@@ -52,6 +52,7 @@ public:
 };
 
 class PixelMappingBuilder{
+private:
   PixelMapping &mapping;
   MappingFunction *mapper;
   point_t top_left, scale, inv_scale;

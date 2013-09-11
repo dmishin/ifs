@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     builder.build( 2 );
   }
   std::cout<<"Mapping built."
-	   <<"Total relations:"<<mapping.pixel_targets.size()
+	   <<"Total relations:"<<mapping.n_relations()
 	   <<std::endl;
   std::cout<<"Targets for the point 150,100:"<<std::endl;
   size_t idx = 1050 + 1000 * mapping.width();
