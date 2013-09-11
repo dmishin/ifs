@@ -23,26 +23,29 @@ void AffineMap::map( const point_t *points, size_t n, point_t *out )
 
 
 PixelMapping::PixelMapping(size_t w, size_t h)
-  :width(w), height(h)
+  :width_(w), height_(h)
 {
-  pixel_target_indices.resize(width*height);
+  pixel_target_indices.resize(width_*height_);
 }
 
-void PixelMapping::get_targets_range(size_t idx, size_t &ti, size_t &ti_end)
+void PixelMapping::get_targets_range(
+  size_t idx, 
+  PixelMapping::targets_array::const_iterator &ti,
+  PixelMapping::targets_array::const_iterator &ti_end)
 {
-  ti = pixel_target_indices[idx];
+  ti = pixel_targets.begin() + pixel_target_indices[idx];
   if (idx + 1 >= pixel_target_indices.size())
-    ti_end = pixel_targets.size();
+    ti_end = pixel_targets.end();
   else
-    ti_end = pixel_target_indices[idx+1];
+    ti_end = pixel_targets.begin() + pixel_target_indices[idx+1];
 }
 
-void PixelMapping::setMapper( MappingFunction *m, const point_t &p0, const point_t &p1 )
+void PixelMappingBuilder::setMapper( MappingFunction *m, const point_t &p0, const point_t &p1 )
 {
   mapper = m;
   top_left = p0;
-  scale = point_t( (p1.x-p0.x)/width, (p1.y-p0.y)/height );
-  inv_scale = point_t( width/(p1.x-p0.x), height/(p1.y-p0.y) );
+  scale = (p1-p0)/point_t( mapping.width(), mapping.height());
+  inv_scale = point_t( mapping.width(), mapping.height()) / (p1-p0);
 }
 
 
@@ -213,8 +216,10 @@ void fill_hrz_row_of_points( point_t *points, size_t npoints, const point_t &p0,
   }
 }
 
-void PixelMapping::build(size_t subpixels)
+void PixelMappingBuilder::build(size_t subpixels)
 {
+  size_t width = mapping.width(), height = mapping.height();
+  assert(mapper);
   std::vector<int> dest_pixmap;
   point_t dst[4];
   point_t p0, p1;
@@ -259,21 +264,28 @@ void PixelMapping::build(size_t subpixels)
 
 /**Take grayscale antialiased image of a transformed pixel, and add it to the mapping
  */
-void PixelMapping::register_pixel_image( size_t pixel_index, const std::vector<int> &pixels, size_t total_hits, int ix0, int iy0, int ix1, int iy1)
+void PixelMappingBuilder::register_pixel_image( size_t pixel_index, const std::vector<int> &pixels, size_t total_hits, int ix0, int iy0, int ix1, int iy1)
 {
   if( total_hits == 0) return;
   double kpix = 1.0/double(total_hits);
 
-  add_source_pixel(pixel_index);
+  mapping.add_source_pixel(pixel_index);
 
   size_t idx=0;
   for( int yy=iy0; yy< iy1; ++yy){
     for( int xx=ix0; xx< ix1; ++xx, ++idx){
       if (pixels[idx] > 0){
 	double k = double(pixels[idx])*kpix;
-	add_target_link( yy*width+xx, k);
+	mapping.add_target_link( yy*mapping.width()+xx, k);
       }
     }
   }
 }
 
+
+
+PixelMappingBuilder::PixelMappingBuilder(PixelMapping &m)
+  :mapping(m)
+  ,mapper(NULL)
+{
+}

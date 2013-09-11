@@ -1,6 +1,5 @@
 #ifndef __GEOMETRY_HPP_INCLUDED__
 #define __GEOMETRY_HPP_INCLUDED__
-
 struct point_t{
   double x;
   double y;
@@ -14,6 +13,9 @@ struct point_t{
   };
   point_t operator *(const point_t& k)const{
     return point_t(x*k.x, y*k.y);
+  };
+  point_t operator /(const point_t& k)const{
+    return point_t(x/k.x, y/k.y);
   };
   point_t operator *(double k)const{
     return point_t(x*k, y*k);

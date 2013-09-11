@@ -74,21 +74,27 @@ int main(int argc, char *argv[])
   std::cout<<"Building mapping..."<<std::endl;
   std::cout.flush();
   PixelMapping mapping(2000, 2000);
-  mapping.setMapper( &map, point_t(-1,-1), point_t(1,1) );
-  mapping.build( 2 );
+  {
+    PixelMappingBuilder builder(mapping);
+
+
+    builder.setMapper( &map, point_t(-1,-1), point_t(1,1) );
+    builder.build( 2 );
+  }
   std::cout<<"Mapping built."
 	   <<"Total relations:"<<mapping.pixel_targets.size()
 	   <<std::endl;
   std::cout<<"Targets for the point 150,100:"<<std::endl;
-  size_t idx = 1050 + 1000 * mapping.width;
-  size_t ti, ti_end;
+  size_t idx = 1050 + 1000 * mapping.width();
+  PixelMapping::targets_array::const_iterator ti, ti_end;
   mapping.get_targets_range(idx, ti, ti_end);
   double sk = 0;
-  for(size_t i=ti; i!= ti_end; ++i){
-    size_t j = mapping.pixel_targets[i].i;
-    std::cout<<"("<<j%mapping.width<<","<<j/mapping.width<<") -- "<<mapping.pixel_targets[i].k
+  for(PixelMapping::targets_array::const_iterator i=ti; i!= ti_end; ++i){
+    size_t j = i->i;
+    size_t w = mapping.width();
+    std::cout<<"("<<j%w<<","<<j/w<<") -- "<<i->k
 	     <<std::endl;
-    sk += mapping.pixel_targets[i].k;
+    sk += i->k;
   }
   std::cout<<"  total k: "<<sk<<std::endl;
   return 0;

@@ -1,5 +1,5 @@
 cmake_minimum_required( VERSION 2.6 )
-set(CMAKE_CXX_FLAGS "-Wall -O3")
+set(CMAKE_CXX_FLAGS "-Wall -Ofast")
 
 project( genetic-ifs )
 enable_testing ()
