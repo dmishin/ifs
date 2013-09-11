@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
   AffineMap map;
   map.offset = point_t(0,0);
   double alpha = 0.3;
-  double s = 0.5;
+  double s = 2;
   map.t11 = map.t00 = cos(alpha)*s;
   map.t01 = sin(alpha)*s;
   map.t10 = -sin(alpha)*s;

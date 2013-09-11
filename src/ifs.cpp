@@ -258,14 +258,21 @@ void PixelMappingBuilder::build(size_t subpixels)
       point_t scr_p0 = (p0 - top_left) * inv_scale;
       point_t scr_p1 = (p1 - top_left) * inv_scale;
 
-      int ix0 = cap(0, (int)width-1, (int)floor(scr_p0.x));
-      int iy0 = cap(0, (int)height-1, (int)floor(scr_p0.y));
-      int ix1 = cap(0, (int)width-1, (int)ceil(scr_p1.x));
-      int iy1 = cap(0, (int)height-1, (int)ceil(scr_p1.y));
-      int total_hits = render_polygon_aa_scanline(dst, 4, dest_pixmap, ix0, iy0, ix1, iy1, subpixels, scale, top_left);
-      //Now we have an anti-aliased map of target pixels for the given source pixel.
-      //Record the source-target relation
-      register_pixel_image( pixel_index, dest_pixmap, total_hits, ix0, iy0, ix1, iy1);
+      int ix0 = (int)floor(scr_p0.x);
+      int iy0 = (int)floor(scr_p0.y);
+      int ix1 = (int)ceil(scr_p1.x);
+      int iy1 = (int)ceil(scr_p1.y);
+
+      if (ix0 >= (int)width || ix1 <= 0 || iy0 >= (int)height || iy1 <= 0){
+	//completely outside: write zero.
+	mapping.add_source_pixel(pixel_index);
+      }else{
+
+	int total_hits = render_polygon_aa_scanline(dst, 4, dest_pixmap, ix0, iy0, ix1, iy1, subpixels, scale, top_left);
+	//Now we have an anti-aliased map of target pixels for the given source pixel.
+	//Record the source-target relation
+	register_pixel_image( pixel_index, dest_pixmap, total_hits, ix0, iy0, ix1, iy1);
+      }
     }
   }
   size_t jprev = 0;
@@ -281,13 +288,21 @@ void PixelMappingBuilder::build(size_t subpixels)
  */
 void PixelMappingBuilder::register_pixel_image( size_t pixel_index, const std::vector<int> &pixels, size_t total_hits, int ix0, int iy0, int ix1, int iy1)
 {
+  int width = mapping.width(), height = mapping.height();
+  size_t pix_width = ix1 - ix0;
   mapping.add_source_pixel(pixel_index);
   if( total_hits == 0) return;
 
   double kpix = 1.0/double(total_hits);
-  size_t idx=0;
-  for( int yy=iy0; yy< iy1; ++yy){
-    for( int xx=ix0; xx< ix1; ++xx, ++idx){
+  int cy0 = cap(0,height,iy0);
+  int cy1 = cap(0,height,iy1);
+  int cx0 = cap(0,width,ix0);
+  int cx1 = cap(0,width,ix1);
+  
+  for( int yy=cy0; yy< cy1; ++yy){
+    for( int xx=cx0; xx< cx1; ++xx){
+      size_t idx=yy * pix_width + xx;
+
       if (pixels[idx] > 0){
 	double k = double(pixels[idx])*kpix;
 	mapping.add_target_link( yy*mapping.width()+xx, k);
