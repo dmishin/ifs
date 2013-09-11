@@ -48,7 +48,7 @@ public:
   PixelMapping( size_t w, size_t h );
   void get_targets_range(size_t idx, 
 			 targets_array::const_iterator &ti, 
-			 targets_array::const_iterator &ti_end);
+			 targets_array::const_iterator &ti_end)const;
 };
 
 class PixelMappingBuilder{
@@ -71,5 +71,8 @@ public:
    
  */
 size_t count_points_inside_box( const point_t *poly, size_t np, const point_t &p0, const point_t &p1, size_t n);
+
+class PixelMap;
+void transform_pixel_map( const PixelMapping &mapping, const PixelMap &src, PixelMap &dst);
 
 #endif

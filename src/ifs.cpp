@@ -5,9 +5,11 @@
 #include <cassert>
 #include <cmath>
 #include<iostream>
+#include <stdexcept>
 #include "geometry.hpp"
 #include "ifs.hpp"
 #include "util.hpp"
+#include "pixelmap.hpp"
 std::ostream &operator <<(std::ostream & os, const point_t &p)
 {
   return os <<"["<<p.x<<","<<p.y<<"]";
@@ -31,7 +33,7 @@ PixelMapping::PixelMapping(size_t w, size_t h)
 void PixelMapping::get_targets_range(
   size_t idx, 
   PixelMapping::targets_array::const_iterator &ti,
-  PixelMapping::targets_array::const_iterator &ti_end)
+  PixelMapping::targets_array::const_iterator &ti_end)const
 {
   ti = pixel_targets.begin() + pixel_target_indices[idx];
   if (idx + 1 >= pixel_target_indices.size())
@@ -288,4 +290,27 @@ PixelMappingBuilder::PixelMappingBuilder(PixelMapping &m)
   :mapping(m)
   ,mapper(NULL)
 {
+}
+
+
+void transform_pixel_map( const PixelMapping &mapping, const PixelMap &src, PixelMap &dst)
+{
+  dst.set_size(src.width, src.height);
+  dst.fill(0);
+  
+  if( src.width != mapping.width() || src.height != mapping.height())
+    throw std::logic_error("Mapping and bitmap has different sizes");
+
+  size_t idx=0;
+  PixelMapping::targets_array::const_iterator ibegin, iend;
+
+  for(size_t y=0;y<src.height;++y){
+    for(size_t x=0;x<src.width;++x, ++idx){
+      mapping.get_targets_range(idx, ibegin, iend);
+      for(PixelMapping::targets_array::const_iterator itgt=ibegin; 
+	  itgt!=iend; ++itgt){
+	dst.pixels[itgt->i] += itgt->k*src.pixels[idx];
+      }
+    }
+  }
 }

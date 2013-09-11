@@ -1,7 +1,11 @@
 #include<iostream>
 #include<cassert>
 #include<cmath>
+#include<stdexcept>
+
 #include "ifs.hpp"
+#include "pixelmap.hpp"
+#include "pgm.hpp"
 
 void test_segment_intersects_hrz_ray()
 {
@@ -99,3 +103,4 @@ int main(int argc, char *argv[])
   std::cout<<"  total k: "<<sk<<std::endl;
   return 0;
 }
+
