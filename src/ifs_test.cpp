@@ -63,7 +63,7 @@ void test_is_inside_polygon()
 int main(int argc, char *argv[])
 {
 
-  if (false){ //test rendering polygon
+  if (true){ //test rendering polygon
     std::cout<<"Tesing render poly"<<::std::endl;
     point_t poly[]={point_t(0,0), point_t(1,2),point_t(3,2.1), point_t(4,0.5)};
     std::vector<int> pix(100*100);

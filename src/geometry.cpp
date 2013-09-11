@@ -99,7 +99,7 @@ bool segment_to_hrz_line_intersection(const point_t&a, const point_t&b, double y
     num_t = -num_t; 
     den_t = -den_t; 
   };
-  if (num_t <= 0 || num_t >= den_t) return false;
+  if (num_t < 0 || num_t > den_t) return false;
   
   x = d.x * num_t/den_t + a.x;
   return true;
@@ -115,12 +115,16 @@ size_t polygon_to_hrz_line_intersections( const point_t* poly, size_t np, double
 {
   size_t i_intersect=0;
   for(size_t i=0; i<np && i_intersect < max_xs; ++i){
-    if (segment_to_hrz_line_intersection( poly[i], poly[(i+1)%np], y, xs[i_intersect])){
+    if (segment_to_hrz_line_intersection( poly[i], 
+					  poly[(i+1)%np], 
+					  y, 
+					  xs[i_intersect])){
       i_intersect ++;
     }
   }
   std::sort( xs, xs + i_intersect );
-  return i_intersect;
+  double * p_end = std::unique( xs, xs + i_intersect );
+  return p_end - xs;
 }
 
 
