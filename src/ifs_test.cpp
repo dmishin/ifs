@@ -81,8 +81,8 @@ int main(int argc, char *argv[])
   //sample pixel mapping
   AffineMap map;
   map.offset = point_t(0,0);
-  double alpha = 0.4;
-  double s = 3;
+  double alpha = 0.3;
+  double s = 0.5;
   map.t11 = map.t00 = cos(alpha)*s;
   map.t01 = sin(alpha)*s;
   map.t10 = -sin(alpha)*s;
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
   {
     PixelMappingBuilder builder(mapping);
     builder.setMapper( &map, point_t(-1,-1), point_t(1,1) );
-    builder.build( 2 );
+    builder.build( 8 );
   }
   std::cout<<"Mapping built."
 	   <<"Total relations:"<<mapping.n_relations()
@@ -101,6 +101,7 @@ int main(int argc, char *argv[])
   std::cout<<"Transforming..."<<std::endl;
   PixelMap out_image(0,0);
   transform_pixel_map(mapping, in_image, out_image);
+  out_image.normalize(1);
   {
     PixelMapReader r(out_image);
     std::ofstream out_fstream(out_file, std::ios::binary);

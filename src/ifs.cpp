@@ -322,7 +322,14 @@ void transform_pixel_map( const PixelMapping &mapping, const PixelMap &src, Pixe
       for(PixelMapping::targets_array::const_iterator itgt=ibegin; 
 	  itgt!=iend; ++itgt){
 	assert(itgt->i < dst.pixels.size());
-	dst.pixels[itgt->i] += itgt->k*src.pixels[idx];
+	dst.pixels[itgt->i] += (itgt->k * src.pixels[idx]);
+	/*
+	std::cout<<"dst.pixels["
+		 <<itgt->i
+		 <<"] += "
+		 <<itgt->k<<" * src.pixels["<<idx<<"]="
+		 <<(itgt->k * src.pixels[idx])<<std::endl;
+	*/
       }
     }
   }
