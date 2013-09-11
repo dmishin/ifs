@@ -2,6 +2,8 @@
 #include<cassert>
 #include<cmath>
 #include<stdexcept>
+#include<string>
+#include <fstream>
 
 #include "ifs.hpp"
 #include "pixelmap.hpp"
@@ -60,6 +62,16 @@ void test_is_inside_polygon()
 
 int main(int argc, char *argv[])
 {
+  const char *in_file = "test.pgm";
+  const char *out_file = "test-tfm.pgm";
+  PixelMap in_image(0,0);
+  {
+    PixelMapWriter w(in_image);
+    std::ifstream in_fstream(in_file, std::ios::binary);
+    read_pgm(in_fstream, w);
+  }
+  std::cout<<"Read image "<<in_image.width<<"x"<<in_image.height<<std::endl;
+  
   //run simple testst
   test_is_to_the_right();
   test_segment_intersects_hrz_ray();
@@ -77,17 +89,30 @@ int main(int argc, char *argv[])
 
   std::cout<<"Building mapping..."<<std::endl;
   std::cout.flush();
-  PixelMapping mapping(2000, 2000);
+  PixelMapping mapping(in_image.width, in_image.height);
   {
     PixelMappingBuilder builder(mapping);
-
-
     builder.setMapper( &map, point_t(-1,-1), point_t(1,1) );
     builder.build( 2 );
   }
   std::cout<<"Mapping built."
 	   <<"Total relations:"<<mapping.n_relations()
 	   <<std::endl;
+  std::cout<<"Transforming..."<<std::endl;
+  PixelMap out_image(0,0);
+  transform_pixel_map(mapping, in_image, out_image);
+  {
+    PixelMapReader r(out_image);
+    std::ofstream out_fstream(out_file, std::ios::binary);
+    save_pgm(r, out_fstream);
+  }
+  std::cout<<"Saved "<<out_file<<std::endl;
+  return 0;
+}
+
+
+
+  /*
   std::cout<<"Targets for the point 150,100:"<<std::endl;
   size_t idx = 1050 + 1000 * mapping.width();
   PixelMapping::targets_array::const_iterator ti, ti_end;
@@ -101,6 +126,4 @@ int main(int argc, char *argv[])
     sk += i->k;
   }
   std::cout<<"  total k: "<<sk<<std::endl;
-  return 0;
-}
-
+  */
