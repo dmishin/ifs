@@ -62,7 +62,26 @@ void test_is_inside_polygon()
 
 int main(int argc, char *argv[])
 {
-  const char *in_file = "test.pgm";
+
+  if (false){ //test rendering polygon
+    std::cout<<"Tesing render poly"<<::std::endl;
+    point_t poly[]={point_t(0,0), point_t(1,2),point_t(3,2.1), point_t(4,0.5)};
+    std::vector<int> pix(100*100);
+    render_polygon_aa_scanline(poly,4,
+			       pix, 0,0, 100, 100, 15, 
+			       point_t(4.0/100, 4.0/100), point_t(0,0));
+    PixelMap img(100,100);
+    std::copy(pix.begin(),pix.end(),img.pixels.begin());
+    img.normalize(1);
+    PixelMapReader r(img);
+    std::ofstream of("test-render.pgm",std::ios::binary);
+    save_pgm(r, of);
+    return 0;
+  }
+  
+
+
+  const char *in_file = "sample.pgm";
   const char *out_file = "test-tfm.pgm";
   PixelMap in_image(0,0);
   {
@@ -70,7 +89,7 @@ int main(int argc, char *argv[])
     std::ifstream in_fstream(in_file, std::ios::binary);
     read_pgm(in_fstream, w);
   }
-  std::cout<<"Read image "<<in_image.width<<"x"<<in_image.height<<std::endl;
+  std::cout<<"Read image "<<in_file<<in_image.width<<"x"<<in_image.height<<std::endl;
   
   //run simple testst
   test_is_to_the_right();
@@ -81,8 +100,8 @@ int main(int argc, char *argv[])
   //sample pixel mapping
   AffineMap map;
   map.offset = point_t(0,0);
-  double alpha = 0.3;
-  double s = 2;
+  double alpha = 3.1415/8;
+  double s = 4;
   map.t11 = map.t00 = cos(alpha)*s;
   map.t01 = sin(alpha)*s;
   map.t10 = -sin(alpha)*s;
@@ -93,7 +112,7 @@ int main(int argc, char *argv[])
   {
     PixelMappingBuilder builder(mapping);
     builder.setMapper( &map, point_t(-1,-1), point_t(1,1) );
-    builder.build( 8 );
+    builder.build( 4 );
   }
   std::cout<<"Mapping built."
 	   <<"Total relations:"<<mapping.n_relations()

@@ -301,7 +301,7 @@ void PixelMappingBuilder::register_pixel_image( size_t pixel_index, const std::v
   
   for( int yy=cy0; yy< cy1; ++yy){
     for( int xx=cx0; xx< cx1; ++xx){
-      size_t idx=yy * pix_width + xx;
+      size_t idx=(yy-iy0) * pix_width + (xx-ix0);
 
       if (pixels[idx] > 0){
 	double k = double(pixels[idx])*kpix;

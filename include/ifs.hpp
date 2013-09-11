@@ -75,4 +75,8 @@ size_t count_points_inside_box( const point_t *poly, size_t np, const point_t &p
 class PixelMap;
 void transform_pixel_map( const PixelMapping &mapping, const PixelMap &src, PixelMap &dst);
 
+size_t render_polygon_aa_scanline(const point_t *poly, size_t poly_points,
+				  std::vector<int> &pixels, int ix0, int iy0, int ix1, int iy1, size_t subpixels, 
+				  const point_t scale, const point_t top_left);
+
 #endif
