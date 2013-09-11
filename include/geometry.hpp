@@ -1,5 +1,6 @@
 #ifndef __GEOMETRY_HPP_INCLUDED__
 #define __GEOMETRY_HPP_INCLUDED__
+
 struct point_t{
   double x;
   double y;
@@ -36,5 +37,22 @@ public:
     return const_cast<Transform*>(this)->as_vector(idx);
   }
 };
+
+void bounds( point_t *pts, size_t n, point_t &a, point_t&b);
+/**True, if point x is to the right of the ray a->b*/
+bool is_to_the_right(const point_t&a, const point_t&b, const point_t&x);
+bool segment_intersects_hrz_ray(const point_t&a, const point_t&b, const point_t&p0);
+/**Intersection is inclusive
+*/
+bool segment_to_hrz_line_intersection(const point_t&a, const point_t&b, double y, double &x);
+/**Intersection is inclusive
+*/
+bool segment_to_hrz_line_intersection(const point_t&a, const point_t&b, double y, double &x);
+/**builds list of intersection points between polygon and horizontal line.
+   Points are sorted, if any.
+   returns number of points found
+ */
+size_t polygon_to_hrz_line_intersections( const point_t* poly, size_t np, double y, double *xs, size_t max_xs);
+bool is_inside_polygon(const point_t *poly, size_t n_points, const point_t &p);
 
 #endif
