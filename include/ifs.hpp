@@ -20,8 +20,7 @@ public:
 
 class AffineMap: public MappingFunction{
 public:
-  point_t offset;
-  double t00, t01, t10, t11;
+  Transform tfm;
   virtual void map( const point_t *points, size_t n, point_t *out );
 };
 

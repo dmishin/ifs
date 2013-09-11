@@ -18,8 +18,7 @@ std::ostream &operator <<(std::ostream & os, const point_t &p)
 void AffineMap::map( const point_t *points, size_t n, point_t *out )
 {
   for(size_t i=0; i<n; ++i){
-    out[i] = offset + point_t(t00*points[i].x + t01*points[i].y,
-			      t10*points[i].x + t11*points[i].y);
+    out[i] = tfm.apply(points[i]);
   }
 }
 

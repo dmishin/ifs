@@ -99,12 +99,10 @@ int main(int argc, char *argv[])
 
   //sample pixel mapping
   AffineMap map;
-  map.offset = point_t(0,0);
   double alpha = 3.1415/8;
-  double s = 4;
-  map.t11 = map.t00 = cos(alpha)*s;
-  map.t01 = sin(alpha)*s;
-  map.t10 = -sin(alpha)*s;
+  double s = 2;
+  map.tfm.rot_scale(alpha, s);
+  map.tfm.offset = point_t(0,0);
 
   std::cout<<"Building mapping..."<<std::endl;
   std::cout.flush();
@@ -120,9 +118,10 @@ int main(int argc, char *argv[])
   std::cout<<"Transforming..."<<std::endl;
   PixelMap out_image(0,0);
   transform_pixel_map(mapping, in_image, out_image);
-  out_image.normalize(1);
+  transform_pixel_map(mapping, out_image, in_image);
+  in_image.normalize(1);
   {
-    PixelMapReader r(out_image);
+    PixelMapReader r(in_image);
     std::ofstream out_fstream(out_file, std::ios::binary);
     save_pgm(r, out_fstream);
   }
