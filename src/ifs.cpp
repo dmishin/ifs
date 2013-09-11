@@ -36,10 +36,12 @@ void PixelMapping::get_targets_range(
   PixelMapping::targets_array::const_iterator &ti_end)const
 {
   ti = pixel_targets.begin() + pixel_target_indices[idx];
+  assert(ti <= pixel_targets.end());
   if (idx + 1 >= pixel_target_indices.size())
     ti_end = pixel_targets.end();
   else
     ti_end = pixel_targets.begin() + pixel_target_indices[idx+1];
+  assert(ti_end <= pixel_targets.end());
 }
 
 void PixelMappingBuilder::setMapper( MappingFunction *m, const point_t &p0, const point_t &p1 )
@@ -227,7 +229,11 @@ void PixelMappingBuilder::build(size_t subpixels)
   point_t p0, p1;
   std::vector< point_t > row_src(width+1);
   std::vector< point_t > cur_row_dst(width+1), next_row_dst(width+1);
-  
+
+  std::fill(mapping.pixel_target_indices.begin(),
+	    mapping.pixel_target_indices.end(),
+	    ~(size_t)0);
+
   for(int y=0; y<(int)height; ++y){
     //Transform images of the pixels. Do it row-by-row
     if (y == 0){
@@ -262,17 +268,23 @@ void PixelMappingBuilder::build(size_t subpixels)
       register_pixel_image( pixel_index, dest_pixmap, total_hits, ix0, iy0, ix1, iy1);
     }
   }
+  size_t jprev = 0;
+  for(size_t i=0; i<mapping.pixel_target_indices.size();++i){
+    size_t j = mapping.pixel_target_indices[i];
+    assert( j != ~(size_t)0 );
+    assert( j >= jprev );
+    assert( j <= mapping.pixel_targets.size() );
+  }
 }
 
 /**Take grayscale antialiased image of a transformed pixel, and add it to the mapping
  */
 void PixelMappingBuilder::register_pixel_image( size_t pixel_index, const std::vector<int> &pixels, size_t total_hits, int ix0, int iy0, int ix1, int iy1)
 {
-  if( total_hits == 0) return;
-  double kpix = 1.0/double(total_hits);
-
   mapping.add_source_pixel(pixel_index);
+  if( total_hits == 0) return;
 
+  double kpix = 1.0/double(total_hits);
   size_t idx=0;
   for( int yy=iy0; yy< iy1; ++yy){
     for( int xx=ix0; xx< ix1; ++xx, ++idx){
@@ -309,6 +321,7 @@ void transform_pixel_map( const PixelMapping &mapping, const PixelMap &src, Pixe
       mapping.get_targets_range(idx, ibegin, iend);
       for(PixelMapping::targets_array::const_iterator itgt=ibegin; 
 	  itgt!=iend; ++itgt){
+	assert(itgt->i < dst.pixels.size());
 	dst.pixels[itgt->i] += itgt->k*src.pixels[idx];
       }
     }
