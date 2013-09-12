@@ -99,7 +99,7 @@ void PixelMapping::add_source_pixel(size_t src)
 
 void PixelMapping::add_target_link(size_t tgt, double k)
 {
-  pixel_targets.push_back(source_pixel_ref_t(tgt,k));
+  pixel_targets.push_back(source_pixel_ref_t(tgt,amplitude_t(k)));
 }
 
 /**Anti-aliased polygon rendering
@@ -321,8 +321,8 @@ PixelMappingBuilder::PixelMappingBuilder(PixelMapping &m)
 
 void transform_pixel_map( const PixelMapping &mapping, const PixelMap &src, PixelMap &dst)
 {
-  dst.set_size(src.width, src.height);
-  dst.fill(0);
+  if (dst.width != src.width || dst.height != src.height)
+	  throw std::logic_error("Destination size differs from source");
   
   if( src.width != mapping.width() || src.height != mapping.height())
     throw std::logic_error("Mapping and bitmap has different sizes");

@@ -30,7 +30,7 @@ void read_pgm_header( std::istream &ifile, size_t &w, size_t &h, size_t &maxcolo
   char magic[2];
   ifile.read(&magic[0], 2);
   if (magic[0] !='P' || magic[1] != '5')
-    throw std::logic_error("Bad magic number");
+	  throw std::logic_error("Bad magic number: P5 was expected.");
   w = read_pgm_header_int(ifile);
   h = read_pgm_header_int(ifile);
   maxcolor = read_pgm_header_int(ifile);
@@ -39,7 +39,7 @@ void read_pgm_header( std::istream &ifile, size_t &w, size_t &h, size_t &maxcolo
 void skip_to_eol(std::istream &ifile)
 {
   char c;
-  while(true){
+  while(ifile){
     ifile.read( &c, 1);
     if (c=='\n' || c=='\r') return;
   }
@@ -49,7 +49,7 @@ size_t read_pgm_header_int(std::istream &ifile)
   char c;
   size_t x = 0;
   bool has_number = false;
-  while(true){
+  while(ifile){
     ifile.read(&c,1);
     if (c==' ' || c=='\t' || c=='\r' || c=='\n'){
       if (has_number)
@@ -92,6 +92,8 @@ void read_pgm( std::istream &ifile, MonochromeImageWriter &pixels )
     pixels.write_pixels(buffer, nRead);
     nLeft -= nRead;
   }
+  if (nLeft != 0)
+	  throw std::logic_error("Premature end of file");
 }
 
 

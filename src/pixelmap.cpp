@@ -68,3 +68,10 @@ size_t PixelMapReader::read_pixels(unsigned char *pixels, size_t n_pixels)
   return n_read;
 }
 
+
+void PixelMap::swap(PixelMap &m)
+{
+	m.pixels.swap(pixels);
+	std::swap(width, m.width);
+	std::swap(height, m.height);
+}

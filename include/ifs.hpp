@@ -64,6 +64,7 @@ public:
   void build(size_t subpixels = 4);
 
 };
+void revert_mapping(const PixelMapping &md, PixelMapping &mi);
 
 /**Count, how many points inside rectangular box are inside the polygon.
    Box is given by 2 verties and n: number of points on the side.

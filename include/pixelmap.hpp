@@ -20,6 +20,7 @@ public:
   void normalize( pixel_t scale_to );
   void set_size(size_t w, size_t h){ width=w; height=h; pixels.resize(w*h);};
   void apply_gamma(double g);
+  void swap(PixelMap &m);
 };
 
 
