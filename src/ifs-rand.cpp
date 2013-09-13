@@ -13,7 +13,6 @@
 #include "geometry.hpp"
 #include "pgm.hpp"
 #include "pixelmap.hpp"
-#include "json_serialize.hpp"
 
 const double GLOBAL_NOISE_AMOUNT = 0.005; //defines
 const double POINT_NOISE_AMOUNT = 0.1; //defines
