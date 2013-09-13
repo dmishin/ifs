@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
-
+#include <string>
 #include <cmath>
 #include <stdlib.h>
 #include <time.h>
@@ -13,6 +13,7 @@
 #include "geometry.hpp"
 #include "pgm.hpp"
 #include "pixelmap.hpp"
+#include "json_serialize.hpp"
 
 const double GLOBAL_NOISE_AMOUNT = 0.005; //defines
 const double POINT_NOISE_AMOUNT = 0.1; //defines
@@ -95,7 +96,11 @@ void render_ruleset( PixelMap &pixels,
 		     const Ruleset &ruleset,
 		     size_t n)
 {
+  const size_t BUF_SIZE = 64*1024;
   point_t p(0,0);
+  size_t buffer[BUF_SIZE];
+  size_t buffer_pos = 0;
+
   point_t scale( pixels.width / size.x, pixels.height / size.y );
 
   for(size_t i=0; i<n; ++i){
@@ -107,8 +112,22 @@ void render_ruleset( PixelMap &pixels,
     int ix = (int)floor(pp.x);
     int iy = (int)floor(pp.y);
     if (pixels.contains(ix,iy)){
-      pixels.pixel_ref(ix, iy) += 1;
+	  buffer[buffer_pos] = pixels.pixel_idx(ix,iy);
+	  buffer_pos ++;
+	  if (buffer_pos >= BUF_SIZE){
+		  size_t *pi=buffer, *pend=buffer+buffer_pos;
+		  std::sort(pi, pend);
+		  for(;pi!=pend;++pi){
+			  pixels.pixels[*pi] += 1;
+		  }
+	  }
     }
+  size_t *pi=buffer, *pend=buffer+buffer_pos;
+  std::sort(pi, pend);
+  for(;pi!=pend;++pi){
+	  pixels.pixels[*pi] += 1;
+  }
+
   }
   
 }
@@ -214,10 +233,10 @@ void mutate_insert(Ruleset &r)
 {
   if (r.size() > MAX_GENOME_SIZE)
     mutate_delete(r);
-  r.add( random_double() );
+  r.add( pow(random_double(), 3) );
   Transform &t(r.last().transform);
   t.offset = point_t(random_double()-0.5, random_double()-0.5);
-  t.rot_scale( random_double()*M_PI*2, random_double() );
+  t.rot_scale( random_double()*3.1415926*2, random_double() );
 
   r.update_probabilities();
 }
@@ -343,6 +362,7 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
 		      *(i->genome),
 		      pix.width*pix.height*RENDER_STEPS_PER_PIXEL );
       i->fitness = angle_measure(pix, sample);
+	  pix.apply_gamma(2);
     }
     //Remove the worst samples;
     std::sort(pool.begin(), pool.end(), ByFitness() );
@@ -360,19 +380,18 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
       throw std::logic_error("assertion: fitness sort is bad");
 
     //Filter old records
-    /*
-    {
+    
+    if (true){
       size_t i=0;
       while(i < pool.size()){
-	if (generation - pool[i].generation > 10){
-	  delete pool[i].genome;
-	  pool.erase(pool.begin()+i);
-	}else{
-	  i += 1;
-	}
-      }
+		  if (generation - pool[i].generation > 10){
+			  delete pool[i].genome;
+			  pool.erase(pool.begin()+i);
+		  }else{
+			  i += 1;
+		  }
+	  }
     }
-    */
     if (pool.size() > pool_size){
       for( GenePoolT::iterator i = pool.begin() + pool_size;
 	   i < pool.end();
@@ -405,7 +424,7 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
 
 int main( int argc, char *argv[] )
 {
-  srand(time(NULL));
+  srand((unsigned int)time(NULL));
   std::ifstream ifile("sample-small.pgm", std::ios::binary | std::ios::in);
   PixelMap pix1(0,0);
   {
@@ -420,10 +439,10 @@ int main( int argc, char *argv[] )
 			1, //mut
 			32, //cross
 			pix1,
-			100,
+			3000,
 			50);
 
-  std::cout<<"Genetical optimization finished, showing the result"<<std::endl;
+  std::cout<<"Genetical optimization finished, rendering showing the result"<<std::endl;
   PixelMap pix2(800, 800);
 
   render_ruleset( pix2, 
