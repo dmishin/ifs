@@ -95,9 +95,9 @@ void render_ruleset( PixelMap &pixels,
 		     const Ruleset &ruleset,
 		     size_t n)
 {
-  const size_t BUF_SIZE = 64*1024;
+  const size_t BUF_SIZE = 1024;
   point_t p(0,0);
-  size_t buffer[BUF_SIZE];
+  PixelMap::pixel_t * buffer[BUF_SIZE];
   size_t buffer_pos = 0;
 
   point_t scale( pixels.width / size.x, pixels.height / size.y );
@@ -111,23 +111,23 @@ void render_ruleset( PixelMap &pixels,
     int ix = (int)floor(pp.x);
     int iy = (int)floor(pp.y);
     if (pixels.contains(ix,iy)){
-	  buffer[buffer_pos] = pixels.pixel_idx(ix,iy);
-	  buffer_pos ++;
+	  buffer[buffer_pos ++] = &pixels.pixel_ref(ix,iy);
 	  if (buffer_pos >= BUF_SIZE){
-		  size_t *pi=buffer, *pend=buffer+buffer_pos;
-		  std::sort(pi, pend);
+		  PixelMap::pixel_t **pi=&buffer[0], **pend=buffer + buffer_pos;
+		  //std::sort(pi, pend);
 		  for(;pi!=pend;++pi){
-			  pixels.pixels[*pi] += 1;
+			  **pi += 1;
 		  }
+		  buffer_pos = 0;
 	  }
-    }
-  size_t *pi=buffer, *pend=buffer+buffer_pos;
-  std::sort(pi, pend);
+	}
+  }
+  PixelMap::pixel_t **pi=buffer, **pend=buffer+buffer_pos;
+  //std::sort(pi, pend);
   for(;pi!=pend;++pi){
-	  pixels.pixels[*pi] += 1;
-  }
+	**pi += 1;
+}
 
-  }
   
 }
 
@@ -279,9 +279,15 @@ Ruleset * crossover( const Ruleset &r1, const Ruleset &r2)
     size_t j1 = crs->most_similar_rule( crs->rules[j], j );
     if (j1 >= crs->size() ) break;
     double sp = crs->rules[j].probability + crs->rules[j1].probability;
-    crs->rules[j].transform = merge_transforms( crs->rules[j].transform, 
-						crs->rules[j1].transform,
-						merge_k );
+
+	double wp1 = crs->rules[j].probability * merge_k;
+	double wp2 = crs->rules[j1].probability * (1-merge_k);
+
+    crs->rules[j].transform = merge_transforms( 
+		crs->rules[j].transform, 
+		crs->rules[j1].transform,
+		wp1 / (wp1 + wp2) );
+
     crs->rules[j].probability = sp;
     crs->rules.erase(crs->rules.begin() + j1 );
   }
