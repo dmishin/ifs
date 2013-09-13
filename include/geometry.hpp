@@ -24,6 +24,9 @@ struct point_t{
     x+=p.x; y+=p.y;
     return *this;
   };
+  point_t operator -()const{
+    return point_t(-x,-y);
+  };
 };
 
 
@@ -32,12 +35,16 @@ public:
   double t00,t01, t10, t11;
   point_t offset;
   point_t apply( const point_t& p)const;
+  void apply_inplace( point_t &p )const;
   void rot_scale( double alpha, double s);
+  void set_scale( const point_t &scale );
   double distance( const Transform &t )const;
   double &as_vector( size_t idx );
   double as_vector( size_t idx)const{ 
     return const_cast<Transform*>(this)->as_vector(idx);
   }
+  Transform inverse()const;
+  Transform apply( const Transform&t )const;
 };
 
 void bounds( point_t *pts, size_t n, point_t &a, point_t&b);

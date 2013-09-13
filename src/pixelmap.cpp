@@ -40,11 +40,7 @@ void PixelMap::fill( pixel_t v )
     pixels[i]=v;
   }
 }
-bool PixelMap::contains( int x, int y )const
-{
-  return (x >= 0) && (y >=0) &&
-    (x < (int)width) && (y < (int)height);
-}
+
 PixelMap::pixel_t PixelMap::max_value()const
 {
   pixel_t v=0;

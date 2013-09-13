@@ -34,13 +34,60 @@ void Transform::rot_scale( double alpha, double s)
   t10 = -sn;
 }
 
+void Transform::set_scale( const point_t &s )
+{
+  t00 = s.x;
+  t11 = s.y;
+  t10 = t01 = 0;
+}
 point_t Transform::apply( const point_t& p)const
 {
   return offset + 
     point_t( p.x*t00 + p.y*t01,
 	     p.x*t10 + p.y*t11 );
 }
+void Transform::apply_inplace( point_t& p)const
+{
+  double xx = p.x*t00 + p.y*t01 + offset.x;
+  double yy = p.x*t10 + p.y*t11 + offset.y;
+  p.x = xx;
+  p.y = yy;
+}
 
+Transform Transform::inverse()const
+{
+  double idet = 1.0/(t00*t11 - t10*t01);
+  Transform invt;
+  //Inverse 2x2 matrix
+  invt.t00 = t11 * idet;
+  invt.t11 = t00 * idet;
+  invt.t01 = - t01 * idet;
+  invt.t10 = - t10 * idet;
+
+  //inverse offset
+  invt.offset = point_t(0,0);
+  invt.offset = invt.apply( -offset ); // o = T^-1 * (-o)
+
+  return invt;
+}
+
+/**Multiply two transforms
+   `this` is outer.
+*/
+Transform Transform::apply( const Transform&that )const
+{
+  // xt = o_this + T_this*(o_that + T_that * x)
+  // xt = (o_this + T_this* o_that) + T_this * T_that * x;
+  // xt = TFM_this(o_that) + 
+  Transform mult;
+  mult.offset = apply(that.offset);
+
+  mult.t00 = t00 * that.t00 + t01*that.t10;
+  mult.t01 = t00 * that.t01 + t01*that.t11;
+  mult.t10 = t10 * that.t00 + t11*that.t10;
+  mult.t11 = t10 * that.t01 + t11*that.t11;
+  return mult;
+}
 
 
 /********************/

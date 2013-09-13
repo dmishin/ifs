@@ -14,7 +14,7 @@ public:
 
   size_t pixel_idx(size_t x, size_t y)const{ return x+y*width; };
   pixel_t &pixel_ref(int x, int y){ return pixels[pixel_idx(x,y)]; };
-  bool contains( int x, int y )const;
+  inline bool contains( int x, int y )const;
   pixel_t max_value()const;
   void scale( double k );
   void normalize( pixel_t scale_to );
@@ -23,6 +23,11 @@ public:
   void apply_treshold(double h, double v);
   void swap(PixelMap &m);
 };
+
+bool PixelMap::contains( int x, int y )const
+{
+  return (x >= 0) && (y >=0) && (x < (int)width) && (y < (int)height);
+}
 
 
 class PixelMapWriter: public MonochromeImageWriter{

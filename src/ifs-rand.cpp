@@ -87,7 +87,7 @@ void Ruleset::update_probabilities()
   }
 };
 
-point_t Ruleset::apply( const point_t p )const
+point_t Ruleset::apply( const point_t &p )const
 {
   double r = random_double() * last_p();
   //binary search in range [a;b)
@@ -109,14 +109,37 @@ point_t Ruleset::apply( const point_t p )const
   return rules[b].transform.apply(p);
 };
 
+void Ruleset::apply_inplace( point_t &p )const
+{
+  double r = random_double() * last_p();
+  //binary search in range [a;b)
+  size_t a, b;
+  a = 0; b = rules.size()-1;
+  while (b - a > 1){ 
+    //p(a) is always below r; p(b) is always above. 
+    size_t c = (a+b)/2;
+    if (integral_probabilities[c] <= r){
+      a = c;
+    }else{
+      b = c-1;
+    }
+  };
+  if (b-a == 1){
+    if ( r <= integral_probabilities[a] )
+      b=a;
+  }
+  rules[b].transform.apply_inplace(p);
+};
 
-void render_ruleset( PixelMap &pixels, 
+
+/*** //Bad idea. SLower than I expected
+void render_ruleset_buf( PixelMap &pixels, 
 		     const point_t &origin, 
 		     const point_t &size,
 		     const Ruleset &ruleset,
 		     size_t n)
 {
-  const size_t BUF_SIZE = 1024;
+  const size_t BUF_SIZE = 1024*1024;
   point_t p(0,0);
   PixelMap::pixel_t * buffer[BUF_SIZE];
   size_t buffer_pos = 0;
@@ -135,7 +158,7 @@ void render_ruleset( PixelMap &pixels,
 	  buffer[buffer_pos ++] = &pixels.pixel_ref(ix,iy);
 	  if (buffer_pos >= BUF_SIZE){
 		  PixelMap::pixel_t **pi=&buffer[0], **pend=buffer + buffer_pos;
-		  //std::sort(pi, pend);
+		  std::sort(pi, pend);
 		  for(;pi!=pend;++pi){
 			  **pi += 1;
 		  }
@@ -144,12 +167,56 @@ void render_ruleset( PixelMap &pixels,
 	}
   }
   PixelMap::pixel_t **pi=buffer, **pend=buffer+buffer_pos;
-  //std::sort(pi, pend);
+  std::sort(pi, pend);
   for(;pi!=pend;++pi){
 	**pi += 1;
+  }
+}
+*/
+
+void render_ruleset( PixelMap &pixels, 
+			 const point_t &origin, 
+			 const point_t &size,
+			 const Ruleset &ruleset,
+			 size_t n)
+{
+  point_t scale = point_t(pixels.width,pixels.height) / size;
+  Transform logical_to_screen;
+  logical_to_screen.offset = -origin * scale;
+  logical_to_screen.set_scale( scale );
+  point_t zero = logical_to_screen.apply(point_t(0,0)); //coordinates of the zero point in screen coordinate system
+
+  //Build a ruleset, that works in the screen coordinates,
+  //tu reduce number of coordinate transforms
+  Ruleset tfm_ruleset;
+  ruleset.transform_ruleset(logical_to_screen, tfm_ruleset);
+
+  //start stochastic rendering
+  point_t p = zero;
+  for(size_t i=0; i<n; ++i){
+    tfm_ruleset.apply_inplace(p);
+
+    if( fabs(p.x) > 1e6 || fabs(p.y) > 1e6 ){
+      p = zero; 
+    }
+    int ix = (int)(p.x); //without floor it is faster
+    int iy = (int)(p.y);
+    if (pixels.contains(ix,iy)){
+      pixels.pixel_ref(ix,iy) += 1;
+    }
+  }
+  
 }
 
-  
+//T is transform from the old coordinate system to the new.
+void Ruleset::transform_ruleset( const Transform &t, Ruleset &out )const
+{
+  Transform inv_t = t.inverse();
+  out.integral_probabilities = integral_probabilities;
+  out.rules = rules;
+  for(RulesT::iterator i=out.rules.begin(), e=out.rules.end(); i!=e; ++i ){
+    i->transform = t.apply(i->transform.apply(inv_t));
+  }
 }
 
 
@@ -162,6 +229,7 @@ void normalize_pixmap( PixelMap &p )
   }
   p.scale( 1.0 / sqrt(s) );
 }
+
 double angle_measure( const PixelMap &p1, const PixelMap &p2 )
 {
   if (p1.width != p2.width) throw std::logic_error( "widths are different");
@@ -450,8 +518,31 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
   return pool[0];
 }
 
+void render_sample_ruleset()
+{
+  srand( 11 ); //always the same
+  Ruleset *r = make_orphan();
+
+  PixelMap pix(800, 800);
+
+
+  render_ruleset( pix, 
+		  point_t(-1.5,-1.5),
+		  point_t(3,3),
+		  *r,
+		  pix.width*pix.height*100 );
+
+  pix.normalize(1);
+  pix.apply_gamma(5);
+  {
+    std::ofstream out("sample-render-ruleset.pgm", std::ios::binary | std::ios::out);  
+    PixelMapReader r(pix);
+    save_pgm( r, out);
+  }
+}
 int main( int argc, char *argv[] )
 {
+  /*
   srand((unsigned int)time(NULL));
   std::ifstream ifile("sample-small.pgm", std::ios::binary | std::ios::in);
   PixelMap pix1(0,0);
@@ -469,14 +560,14 @@ int main( int argc, char *argv[] )
 			pix1,
 			300,
 			50);
-
   std::cout<<"Genetical optimization finished, rendering showing the result"<<std::endl;
   PixelMap pix2(800, 800);
+
 
   render_ruleset( pix2, 
 		  point_t(-1.5,-1.5),
 		  point_t(3,3),
-		  *result.genome,
+		  ruleset,
 		  pix2.width*pix2.height*100 );
   pix2.normalize(1);
   pix2.apply_gamma(5);
@@ -486,5 +577,8 @@ int main( int argc, char *argv[] )
     PixelMapReader r(pix2);
     save_pgm( r, out);
   }
+  */
+
+  render_sample_ruleset();
   return 0;
 }

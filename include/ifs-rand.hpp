@@ -21,12 +21,15 @@ public:
   void update_probabilities();
   double last_p()const;
   Rule & add( double dp );
-  point_t apply( const point_t p )const;
+  point_t apply( const point_t &p )const;
+  void apply_inplace( point_t &p )const;
+
   Rule &last(){ return rules.back(); };
   const Rule &last()const{ return rules.back(); };
   size_t size()const{ return rules.size(); };
   size_t most_similar_rule( const Ruleset::Rule &r, size_t except_index )const;
   bool most_similar_rule_pair( size_t &a, size_t &b)const;
+  void transform_ruleset( const Transform &t, Ruleset &out )const;
 };
 
 
