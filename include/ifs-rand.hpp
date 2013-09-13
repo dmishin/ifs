@@ -26,6 +26,7 @@ public:
   const Rule &last()const{ return rules.back(); };
   size_t size()const{ return rules.size(); };
   size_t most_similar_rule( const Ruleset::Rule &r, size_t except_index )const;
+  bool most_similar_rule_pair( size_t &a, size_t &b)const;
 };
 
 

@@ -4,6 +4,7 @@
 #include<stdexcept>
 #include<string>
 #include <fstream>
+#include <algorithm>
 
 #include "ifs.hpp"
 #include "pixelmap.hpp"
@@ -60,37 +61,44 @@ void test_is_inside_polygon()
   assert(!is_inside_polygon(poly,np, point_t(1.5,1.5)));
 }
 
+
+template<typename T1, typename T2>
+struct static_caster{ T2 operator()(const T1 &x)const{ return static_cast<T2>(x); }; };
 int main(int argc, char *argv[])
 {
-
-  if (true){ //test rendering polygon
-    std::cout<<"Tesing render poly"<<::std::endl;
+  using namespace std;
+  try{
+  if (false){ //test rendering polygon
+    cout<<"Tesing render poly"<<endl;
     point_t poly[]={point_t(0,0), point_t(1,2),point_t(3,2.1), point_t(4,0.5)};
-    std::vector<int> pix(100*100);
+    vector<int> pix(100*100);
     render_polygon_aa_scanline(poly,4,
 			       pix, 0,0, 100, 100, 15, 
 			       point_t(4.0/100, 4.0/100), point_t(0,0));
     PixelMap img(100,100);
-    std::copy(pix.begin(),pix.end(),img.pixels.begin());
-    img.normalize(1);
+    transform(pix.begin(),pix.end(),img.pixels.begin(), static_caster<int,double>() );
+    img.scale(1.0/255.0);
     PixelMapReader r(img);
-    std::ofstream of("test-render.pgm",std::ios::binary);
+    ofstream of("test-render.pgm",ios::binary);
     save_pgm(r, of);
     return 0;
   }
   
 
 
-  const char *in_file = "sample.pgm";
+  //const char *in_file = "sample.pgm";
   const char *out_file = "test-tfm.pgm";
-  PixelMap in_image(0,0);
+  //cout<<"Reading file "<<in_file<<endl;
+  PixelMap in_image(800,800);
+  in_image.fill(1.0);
+  /*
   {
     PixelMapWriter w(in_image);
-    std::ifstream in_fstream(in_file, std::ios::binary);
+    ifstream in_fstream(in_file, ios::binary);
     read_pgm(in_fstream, w);
   }
-  std::cout<<"Read image "<<in_file<<in_image.width<<"x"<<in_image.height<<std::endl;
-  
+  cout<<"Read image "<<in_file<<" :"<<in_image.width<<"x"<<in_image.height<<"px"<<endl;
+  */
   //run simple testst
   test_is_to_the_right();
   test_segment_intersects_hrz_ray();
@@ -99,34 +107,59 @@ int main(int argc, char *argv[])
 
   //sample pixel mapping
   AffineMap map;
-  double alpha = 3.1415/8;
-  double s = 2;
-  map.tfm.rot_scale(alpha, s);
-  map.tfm.offset = point_t(0,0);
+  map.tfm.rot_scale(-3.14159268/4, 0.5);
+  map.tfm.offset = point_t(-0.2,0);
 
-  std::cout<<"Building mapping..."<<std::endl;
-  std::cout.flush();
+  AffineMap map1;
+  map1.tfm.rot_scale(-3.14159268/8, 0.7);
+  map1.tfm.offset = point_t(0.2,0);
+
+  cout<<"Building mapping..."<<endl;
+  cout.flush();
   PixelMapping mapping(in_image.width, in_image.height);
   {
     PixelMappingBuilder builder(mapping);
     builder.setMapper( &map, point_t(-1,-1), point_t(1,1) );
     builder.build( 4 );
   }
-  std::cout<<"Mapping built."
+  cout<<"Mapping 1 built."
 	   <<"Total relations:"<<mapping.n_relations()
-	   <<std::endl;
-  std::cout<<"Transforming..."<<std::endl;
-  PixelMap out_image(0,0);
-  transform_pixel_map(mapping, in_image, out_image);
-  transform_pixel_map(mapping, out_image, in_image);
-  in_image.normalize(1);
+	   <<endl;
+
+  PixelMapping mapping1(in_image.width, in_image.height);
   {
-    PixelMapReader r(in_image);
-    std::ofstream out_fstream(out_file, std::ios::binary);
+    PixelMappingBuilder builder(mapping1);
+    builder.setMapper( &map1, point_t(-1,-1), point_t(1,1) );
+    builder.build( 4 );
+  }
+  cout<<"Mapping 2 built."
+	   <<"Total relations:"<<mapping1.n_relations()
+	   <<endl;
+
+  size_t n_iters = 200;
+  cout<<"Transforming for "<<n_iters<<" iterations ..."<<endl;
+  PixelMap out_image(in_image.width,in_image.height);
+  for( size_t iter=0; iter < n_iters; ++iter){
+	  cout<<"."; cout.flush();
+	  out_image.fill(0);
+	  transform_pixel_map(mapping, in_image, out_image);
+	  transform_pixel_map(mapping1, in_image, out_image);
+	  out_image.normalize(1);
+	  out_image.swap(in_image);
+  }
+  out_image.swap(in_image); //swap back
+  out_image.apply_gamma(2);
+  {
+    PixelMapReader r(out_image);
+    ofstream out_fstream(out_file, ios::binary);
     save_pgm(r, out_fstream);
   }
-  std::cout<<"Saved "<<out_file<<std::endl;
+  cout<<"Saved "<<out_file<<endl;
   return 0;
+  }catch(exception &e){
+	  cerr<<"Exception raised:"<<e.what()<<endl;
+	  return 1;
+  }
 }
 
 

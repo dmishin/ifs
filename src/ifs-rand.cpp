@@ -20,6 +20,27 @@ const int CROSSOVER_RANDOMIZE_SIZE = 2;
 const size_t MAX_GENOME_SIZE = 7;
 const size_t RENDER_STEPS_PER_PIXEL = 2;
 
+bool Ruleset::most_similar_rule_pair( size_t &a, size_t &b)const
+{
+	if (rules.size() <= 1) return false;
+	if (rules.size() == 2) {
+		a = 0; b = 1;
+		return true;
+	}
+	double dbest = -1;
+	for(size_t i=0; i<rules.size(); ++i){
+		for(size_t j=0; j<rules.size(); ++j){
+			double d = rules[i].transform.distance(rules[j].transform);
+			if (dbest < 0 || d < dbest){
+				a = i;
+				b = j;
+				dbest = d;
+			}
+		}
+	}
+	return true;
+}
+
 size_t Ruleset::most_similar_rule( const Ruleset::Rule &r, size_t except_index )const
 {
   size_t ibest = rules.size();
@@ -274,9 +295,9 @@ Ruleset * crossover( const Ruleset &r1, const Ruleset &r2)
     }
   }
   while( crs->size() > n ){
-    size_t j = rand()%crs->size();
-    //find the most similar
-    size_t j1 = crs->most_similar_rule( crs->rules[j], j );
+    size_t j, j1;
+	crs->most_similar_rule_pair( j, j1 );
+
     if (j1 >= crs->size() ) break;
     double sp = crs->rules[j].probability + crs->rules[j1].probability;
 
