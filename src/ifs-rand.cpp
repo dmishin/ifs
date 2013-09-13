@@ -174,6 +174,7 @@ double angle_measure( const PixelMap &p1, const PixelMap &p2 )
     s1 += v1*v1;
     s12 += v1*v2;
   }
+  if (s1 == 0.0) return 0;
   return s12 / sqrt(s1);
 }
 
@@ -387,8 +388,9 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
 		      point_t(2,2),
 		      *(i->genome),
 		      pix.width*pix.height*RENDER_STEPS_PER_PIXEL );
+	  //pix.apply_treshold(RENDER_STEPS_PER_PIXEL * 0.5, 1);
+	  pix.apply_gamma(5);
       i->fitness = angle_measure(pix, sample);
-	  pix.apply_gamma(2);
     }
     //Remove the worst samples;
     std::sort(pool.begin(), pool.end(), ByFitness() );
@@ -465,7 +467,7 @@ int main( int argc, char *argv[] )
 			1, //mut
 			32, //cross
 			pix1,
-			3000,
+			300,
 			50);
 
   std::cout<<"Genetical optimization finished, rendering showing the result"<<std::endl;

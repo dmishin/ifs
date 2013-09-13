@@ -6,7 +6,7 @@ void PixelMap::normalize(PixelMap::pixel_t scale_to)
   scale(double(scale_to)/double(max_value()));
 }
 
-void PixelMap::apply_treshold(double h, doble v)
+void PixelMap::apply_treshold(double h, double v)
 {
 	std::vector<pixel_t>::iterator i, e;
 	for(i=pixels.begin(), e=pixels.end(); i != e; ++i ){
