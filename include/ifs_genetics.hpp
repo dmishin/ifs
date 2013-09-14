@@ -8,6 +8,7 @@ class Ruleset;
 Transform merge_transforms(const Transform &t1, const Transform &t2, double p);
 void normalize_pixmap( PixelMap &p );
 
+Ruleset * make_clone( const Ruleset &r );
 Ruleset * make_orphan();
 Ruleset * mutate( const Ruleset &r );
 Ruleset * crossover( const Ruleset &r1, const Ruleset &r2);

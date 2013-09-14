@@ -38,6 +38,7 @@ void render_sample_ruleset()
     save_pgm( r, out);
   }
 }
+
 int main( int argc, char *argv[] )
 {
   srand((unsigned int)time(NULL));
@@ -55,7 +56,7 @@ int main( int argc, char *argv[] )
 			15, //mut
 			15, //cross
 			pix1,
-			6000,
+			30000,
 			50);
   std::cout<<"Genetical optimization finished, rendering showing the result"<<std::endl;
   PixelMap pix2(800, 800);

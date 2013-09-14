@@ -12,11 +12,11 @@
 #include "ruleset.hpp"
 #include "ifs_genetics.hpp"
 
-const double GLOBAL_NOISE_AMOUNT = 0.01; //defines
+const double GLOBAL_NOISE_AMOUNT = 0.05; //defines
 const double POINT_NOISE_AMOUNT = 0.2; //defines
 const int CROSSOVER_RANDOMIZE_SIZE = 2;
-const size_t MAX_GENOME_SIZE = 7;
-const size_t RENDER_STEPS_PER_PIXEL = 2;
+const size_t MAX_GENOME_SIZE = 10;
+const size_t RENDER_STEPS_PER_PIXEL = 3;
 
 Transform merge_transforms(const Transform &t1, const Transform &t2, double p)
 {
@@ -65,7 +65,10 @@ Ruleset * make_orphan()
   }
   return orphan;
 }
-
+Ruleset * make_clone( const Ruleset &r )
+{
+  return new Ruleset(r);
+}
 Ruleset * mutate( const Ruleset &r )
 {
   Ruleset * clone = new Ruleset(r);
@@ -191,7 +194,14 @@ struct ByFitness{
   }
 };
 
-
+std::ostream & operator << (std::ostream &os, const GenePoolRecordT &record)
+{
+  return
+    os<<record.fitness
+      <<" origin: "<<record.origin
+      <<" born: "<<record.generation
+      <<" sz:"<<record.genome->size();
+}
 GenePoolRecordT genetical_optimize( size_t pool_size, 
 				    size_t orphans_per_generation, 
 				    size_t n_mutants, 
@@ -208,6 +218,10 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
   cout << "  crossovers per generation:"<<n_crossovers<<endl;
   PixelMap pix(sample.width, sample.height);
 
+  GenePoolRecordT best;
+  best.genome = NULL;
+  best.fitness = -1;
+    
   GenePoolT pool;
   for(size_t i=0; i<pool_size; ++i){
     pool.push_back( GenePoolRecordT( make_orphan(), "initial orphan") );
@@ -251,17 +265,21 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
 	  pix.apply_gamma(5);
       i->fitness = cosine_distance(pix, sample);
     }
+    //Update best sample
+    if (pool.front().fitness > best.fitness || best.fitness < 0){
+      best = pool.front();
+      best.genome = make_clone(*best.genome);
+    }
     //Remove the worst samples;
     std::sort(pool.begin(), pool.end(), ByFitness() );
 
+    std::cout <<"   Best in history :"<<std::endl;
+    std::cout<<"  "<<best<<std::endl;
+    
     std::cout <<"   Best 3 fitness:"<<std::endl;
-    for(size_t i=0; i<std::min((size_t)3,pool.size()); ++i)
-      std::cout<<"       "
-	       <<i<<" "<<pool[i].fitness
-	       <<" origin: "<<pool[i].origin
-	       <<" born at: "<<pool[i].generation
-	       <<" sz:"<<pool[i].genome->size()
-	       <<std::endl;
+    for(size_t i=0; i<std::min((size_t)3,pool.size()); ++i){
+      std::cout<<"  "<<i<<" "<<pool[i]<<std::endl;
+    }
 
     if( pool.front().fitness < pool.back().fitness )
       throw std::logic_error("assertion: fitness sort is bad");
@@ -299,12 +317,12 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
       break;
     }
   }
-  for( GenePoolT::iterator i = pool.begin() + 1;
+  for( GenePoolT::iterator i = pool.begin();
        i < pool.end();
        ++i ){
     delete (i->genome);
     i->genome = NULL;
     i->fitness = -1;
   }
-  return pool[0];
+  return best;
 }
