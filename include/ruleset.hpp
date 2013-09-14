@@ -19,7 +19,6 @@ public:
 
 public:
   void update_probabilities();
-  double last_p()const;
   Rule & add( double dp );
   point_t apply( const point_t &p )const;
   void apply_inplace( point_t &p )const;

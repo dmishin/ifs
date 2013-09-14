@@ -142,7 +142,9 @@ void mutate_delete(Ruleset &r)
   if (r.size() >= max_size) return;
   size_t idx = rand() % r.size();
   r.rules.erase(r.rules.begin()+idx);
+  r.update_probabilities();
 }
+
 void mutate_modify(Ruleset &r)
 {
   double amount = POINT_NOISE_AMOUNT;
@@ -175,8 +177,9 @@ Ruleset * crossover( const Ruleset &r1, const Ruleset &r2)
     if (j1 >= crs->size() ) break;
     double sp = crs->rules[j].probability + crs->rules[j1].probability;
 
-	double wp1 = crs->rules[j].probability * merge_k;
-	double wp2 = crs->rules[j1].probability * (1-merge_k);
+    //weighted probabilities
+    double wp1 = crs->rules[j].probability * merge_k;
+    double wp2 = crs->rules[j1].probability * (1-merge_k);
 
     crs->rules[j].transform = merge_transforms( 
 		crs->rules[j].transform, 

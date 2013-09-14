@@ -45,33 +45,34 @@ size_t Ruleset::most_similar_rule( const Ruleset::Rule &r, size_t except_index )
   };
   return ibest;
 }
-double Ruleset::last_p()const
-{
-  if (integral_probabilities.empty()) return 0;
-  return integral_probabilities.back();
-}
-
 Ruleset::Rule & Ruleset::add( double dp )
 {
-  double ip = last_p()+dp;
   rules.push_back( Rule() );
   rules.back().probability = dp;
-  integral_probabilities.push_back(ip);
   return rules.back();
 }
 void Ruleset::update_probabilities()
 {
   integral_probabilities.resize( rules.size() );
+  if (rules.empty())
+    return;
+
   double sp=0;
   for(size_t i=0; i<rules.size(); ++i){
     sp += rules[i].probability;
     integral_probabilities[i] = sp;
   }
+  //now normalize the integral probabilities to make them sum to 1
+  if (sp == 0.0) return;//avoid zero division.
+  double inv_sp = 1.0 / sp;
+  for(size_t i=0; i<integral_probabilities.size(); ++i){
+    integral_probabilities[i] *= inv_sp;
+  }
 };
 
 point_t Ruleset::apply( const point_t &p )const
 {
-  double r = random_double() * last_p();
+  double r = random_double();
   //binary search in range [a;b)
   size_t a, b;
   a = 0; b = rules.size()-1;
@@ -93,7 +94,7 @@ point_t Ruleset::apply( const point_t &p )const
 
 void Ruleset::apply_inplace( point_t &p )const
 {
-  double r = random_double() * last_p();
+  double r = random_double();
   //binary search in range [a;b)
   size_t a, b;
   a = 0; b = rules.size()-1;
