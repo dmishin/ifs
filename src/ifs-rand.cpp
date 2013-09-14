@@ -60,7 +60,7 @@ int main( int argc, char *argv[] )
 			15, //mut
 			15, //cross
 			fitness,
-			30000,
+			10000,
 			50);
   std::cout<<"Genetical optimization finished, rendering showing the result"<<std::endl;
   PixelMap pix2(800, 800);

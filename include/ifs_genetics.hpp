@@ -49,7 +49,21 @@ GenePoolRecordT genetical_optimize( Genetics<Ruleset> &genetics,
 
 class RulesetGenetics: public Genetics<Ruleset>
 {
+private:
+  void mutate_global_noise(Ruleset &r);
+  void mutate_insert(Ruleset &r);
+  void mutate_delete(Ruleset &r);
+  void mutate_modify(Ruleset &r);
+  void random_modify_rule( Ruleset::Rule &r, double amount );
+  
 public:
+  
+  double noise_amount_global;
+  double noise_amount_point;
+  int crossover_size_jitter;
+  size_t max_rules;
+
+  RulesetGenetics();
   virtual Ruleset *orphan();
   virtual Ruleset *clone(const Ruleset &g);
   virtual Ruleset *mutant(const Ruleset &g);
@@ -63,6 +77,7 @@ class CosineMeasureFitness: public FitnessFunction{
   point_t origin, size;
   double gamma;
 public:
+  size_t RENDER_STEPS_PER_PIXEL;
   CosineMeasureFitness( const PixelMap &sample_, const point_t &p0, const point_t &p1 );
   void set_gamma(double g){ gamma = g; };
   virtual double fitness(const Ruleset &rule);

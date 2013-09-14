@@ -12,11 +12,6 @@
 #include "ruleset.hpp"
 #include "ifs_genetics.hpp"
 
-const double GLOBAL_NOISE_AMOUNT = 0.05; //defines
-const double POINT_NOISE_AMOUNT = 0.2; //defines
-const int CROSSOVER_RANDOMIZE_SIZE = 2;
-const size_t MAX_GENOME_SIZE = 10;
-const size_t RENDER_STEPS_PER_PIXEL = 3;
 
 Transform merge_transforms(const Transform &t1, const Transform &t2, double p)
 {
@@ -51,12 +46,8 @@ double cosine_distance( const PixelMap &p1, const PixelMap &p2 )
 
 
 
-void mutate_global_noise(Ruleset &r);
-void mutate_insert(Ruleset &r);
-void mutate_delete(Ruleset &r);
-void mutate_modify(Ruleset &r);
 
-void random_modify_rule( Ruleset::Rule &r, double amount )
+void RulesetGenetics::random_modify_rule( Ruleset::Rule &r, double amount )
 {
     r.probability *= (1.0 + amount*(random_double()-0.5));
     Transform &t(r.transform); 
@@ -72,19 +63,19 @@ void random_modify_rule( Ruleset::Rule &r, double amount )
     t.t10 += amount*(random_double()-0.5);
     t.t11 += amount*(random_double()-0.5);
 }
-void mutate_global_noise(Ruleset &r)
+void RulesetGenetics::mutate_global_noise(Ruleset &r)
 {
   using namespace std;
-  double amount = GLOBAL_NOISE_AMOUNT * random_double();
+  double amount = noise_amount_global * random_double();
 
   for (size_t i=0; i<r.rules.size(); ++i){
     random_modify_rule(r.rules[i], amount);
   }
   r.update_probabilities();
 }
-void mutate_insert(Ruleset &r)
+void RulesetGenetics::mutate_insert(Ruleset &r)
 {
-  if (r.size() > MAX_GENOME_SIZE)
+  if (r.size() > max_rules)
     mutate_delete(r);
   r.add( pow(random_double(), 3) );
   Transform &t(r.last().transform);
@@ -94,7 +85,7 @@ void mutate_insert(Ruleset &r)
   r.update_probabilities();
 }
 
-void mutate_delete(Ruleset &r)
+void RulesetGenetics::mutate_delete(Ruleset &r)
 {
   size_t max_size = 10;
   if (r.size() <= 2) return;
@@ -104,9 +95,9 @@ void mutate_delete(Ruleset &r)
   r.update_probabilities();
 }
 
-void mutate_modify(Ruleset &r)
+void RulesetGenetics::mutate_modify(Ruleset &r)
 {
-  double amount = POINT_NOISE_AMOUNT;
+  double amount = noise_amount_point;
   if (r.size() ==0) return;
   size_t idx = rand() % r.size();
   random_modify_rule( r.rules[idx], amount );
@@ -251,6 +242,7 @@ CosineMeasureFitness::CosineMeasureFitness( const PixelMap &sample_, const point
   origin = p0;
   size = p1 - p0;
   gamma = 5;
+  RENDER_STEPS_PER_PIXEL = 3;
 }
 double CosineMeasureFitness::fitness(const Ruleset &rule)
 {
@@ -267,7 +259,7 @@ double CosineMeasureFitness::fitness(const Ruleset &rule)
 Ruleset *RulesetGenetics::orphan()
 {
   Ruleset * orphan = new Ruleset();
-  size_t n = 2 + (rand()%(MAX_GENOME_SIZE - 1));
+  size_t n = 2 + (rand()%(max_rules - 1));
   for(size_t i=0; i<n; ++i){
     mutate_insert( *orphan );
   }
@@ -303,7 +295,7 @@ Ruleset *RulesetGenetics::crossover(const Ruleset &r1, const Ruleset &r2)
   double merge_k = random_double()*2-0.5; //from -0.5 to 1.5
   Ruleset *crs = new Ruleset();
   
-  int dn = rand()%(CROSSOVER_RANDOMIZE_SIZE*2+1) - CROSSOVER_RANDOMIZE_SIZE;
+  int dn = rand()%(crossover_size_jitter*2+1) - crossover_size_jitter;
   int n1 = (r1.size() + r2.size()) / 2 + dn;
   size_t n = (n1 > 2)? n1 : 2;
   {
@@ -339,3 +331,11 @@ void RulesetGenetics::deallocate( Ruleset *g )
 {
   delete g;
 };
+
+RulesetGenetics::RulesetGenetics()
+{
+  noise_amount_global = 0.05; //defines
+  noise_amount_point = 0.2; //defines
+  crossover_size_jitter = 2;
+  max_rules = 10;
+}
