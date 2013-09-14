@@ -7,10 +7,10 @@ inline double sqr(double x){ return x*x; };
 double random_double();
 
 template<typename T>
-T cap( const T&a, const T&b, const T&x)
+T cap( T a, T b, T x)
 {
-  return std::min(std::max(x,a),b);
+  using namespace std;
+  return min(max(x,a),b);
 }
-
 
 #endif
