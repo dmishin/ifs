@@ -56,42 +56,6 @@ void mutate_insert(Ruleset &r);
 void mutate_delete(Ruleset &r);
 void mutate_modify(Ruleset &r);
 
-Ruleset * make_orphan()
-{
-  Ruleset * orphan = new Ruleset();
-  size_t n = 2 + (rand()%(MAX_GENOME_SIZE - 1));
-  for(size_t i=0; i<n; ++i){
-    mutate_insert( *orphan );
-  }
-  return orphan;
-}
-Ruleset * make_clone( const Ruleset &r )
-{
-  return new Ruleset(r);
-}
-Ruleset * mutate( const Ruleset &r )
-{
-  Ruleset * clone = new Ruleset(r);
-
-  switch ( rand() % 4 ){
-  case 0:
-    mutate_global_noise( *clone );
-    break;
-  case 1:
-    mutate_insert(*clone);
-    break;
-  case 2:
-    mutate_delete(*clone);
-    break;
-  case 3:
-    mutate_modify(*clone);
-    break;
-  default: 
-    throw std::logic_error("Error: incorrect mutation type");
-  }
-  return clone;
-}
-
 void random_modify_rule( Ruleset::Rule &r, double amount )
 {
     r.probability *= (1.0 + amount*(random_double()-0.5));
@@ -149,45 +113,6 @@ void mutate_modify(Ruleset &r)
   r.update_probabilities();
 }
 
-Ruleset * crossover( const Ruleset &r1, const Ruleset &r2)
-{
-  double merge_k = random_double()*2-0.5; //from -0.5 to 1.5
-  Ruleset *crs = new Ruleset();
-  
-  int dn = rand()%(CROSSOVER_RANDOMIZE_SIZE*2+1) - CROSSOVER_RANDOMIZE_SIZE;
-  int n1 = (r1.size() + r2.size()) / 2 + dn;
-  size_t n = (n1 > 2)? n1 : 2;
-  {
-    std::back_insert_iterator<Ruleset::RulesT> inserter(crs->rules);
-    std::copy(r1.rules.begin(), r1.rules.end(), inserter);
-    std::copy(r2.rules.begin(), r2.rules.end(), inserter);
-    for(Ruleset::RulesT::iterator i=crs->rules.begin(); i!=crs->rules.end();++i){
-      i->probability *= 0.5;
-    }
-  }
-  while( crs->size() > n ){
-    size_t j, j1;
-	crs->most_similar_rule_pair( j, j1 );
-
-    if (j1 >= crs->size() ) break;
-    double sp = crs->rules[j].probability + crs->rules[j1].probability;
-
-    //weighted probabilities
-    double wp1 = crs->rules[j].probability * merge_k;
-    double wp2 = crs->rules[j1].probability * (1-merge_k);
-
-    crs->rules[j].transform = merge_transforms( 
-		crs->rules[j].transform, 
-		crs->rules[j1].transform,
-		wp1 / (wp1 + wp2) );
-
-    crs->rules[j].probability = sp;
-    crs->rules.erase(crs->rules.begin() + j1 );
-  }
-  crs->update_probabilities();
-  return crs;
-}
-
 struct ByFitness{
   bool operator()(const GenePoolRecordT &r1, const GenePoolRecordT& r2)const{
     return r1.fitness > r2.fitness;
@@ -202,7 +127,8 @@ std::ostream & operator << (std::ostream &os, const GenePoolRecordT &record)
       <<" born: "<<record.generation
       <<" sz:"<<record.genome->size();
 }
-GenePoolRecordT genetical_optimize( size_t pool_size, 
+GenePoolRecordT genetical_optimize( Genetics<Ruleset> &genetics,
+				    size_t pool_size, 
 				    size_t orphans_per_generation, 
 				    size_t n_mutants, 
 				    size_t n_crossovers,
@@ -223,7 +149,7 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
     
   GenePoolT pool;
   for(size_t i=0; i<pool_size; ++i){
-    pool.push_back( GenePoolRecordT( make_orphan(), "initial orphan") );
+    pool.push_back( GenePoolRecordT( genetics.orphan(), "initial orphan") );
     pool.back().generation = 0;
   }
 
@@ -232,7 +158,7 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
     //add mutants    
     for(size_t i=0; i<n_mutants; ++i){
       size_t idx = rand()%pool_size;
-      pool.push_back( GenePoolRecordT( mutate( *(pool[idx].genome) ),
+      pool.push_back( GenePoolRecordT( genetics.mutant( *(pool[idx].genome) ),
 				       "mutant") );
       pool.back().generation = generation;
     }
@@ -240,15 +166,15 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
     for(size_t i=0; i<n_crossovers; ++i){
       size_t idx1 = rand()%pool_size;
       size_t idx2 = rand()%pool_size;
-      pool.push_back( GenePoolRecordT( crossover( *(pool[idx1].genome),
-						  *(pool[idx2].genome) ),
+      pool.push_back( GenePoolRecordT( genetics.crossover( *(pool[idx1].genome),
+							   *(pool[idx2].genome) ),
 				       "crossover") );
       pool.back().generation = generation;
     }
     
     //add orphans
     for(size_t i=0; i<orphans_per_generation; ++i){
-      pool.push_back( GenePoolRecordT( make_orphan(), "orphan" ) );
+      pool.push_back( GenePoolRecordT( genetics.orphan(), "orphan" ) );
       pool.back().generation = generation;
     }
     //Update fitness for those who has not it.
@@ -259,7 +185,7 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
     //Update best sample
     if (pool.front().fitness > best.fitness || best.fitness < 0){
       best = pool.front();
-      best.genome = make_clone(*best.genome);
+      best.genome = genetics.clone(*best.genome);
     }
     //Remove the worst samples;
     std::sort(pool.begin(), pool.end(), ByFitness() );
@@ -280,19 +206,19 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
     if (true){
       size_t i=0;
       while(i < pool.size()){
-		  if (generation - pool[i].generation > 10){
-			  delete pool[i].genome;
-			  pool.erase(pool.begin()+i);
-		  }else{
-			  i += 1;
-		  }
-	  }
+	if (generation - pool[i].generation > 10){
+	  genetics.deallocate(pool[i].genome);
+	  pool.erase(pool.begin()+i);
+	}else{
+	  i += 1;
+	}
+      }
     }
     if (pool.size() > pool_size){
       for( GenePoolT::iterator i = pool.begin() + pool_size;
 	   i < pool.end();
 	   ++i ){
-	delete (i->genome);
+	genetics.deallocate(i->genome);
 	i->genome = NULL;
 	i->fitness = -1;
       }
@@ -337,3 +263,79 @@ double CosineMeasureFitness::fitness(const Ruleset &rule)
   canvas.apply_gamma( gamma );
   return cosine_distance(canvas, sample);
 }
+
+Ruleset *RulesetGenetics::orphan()
+{
+  Ruleset * orphan = new Ruleset();
+  size_t n = 2 + (rand()%(MAX_GENOME_SIZE - 1));
+  for(size_t i=0; i<n; ++i){
+    mutate_insert( *orphan );
+  }
+  return orphan;
+}
+Ruleset *RulesetGenetics::clone(const Ruleset &g)
+{
+  return new Ruleset(g);
+}
+Ruleset *RulesetGenetics::mutant(const Ruleset &g)
+{
+  Ruleset *mutant = clone(g);
+  switch ( rand() % 4 ){
+  case 0:
+    mutate_global_noise( *mutant );
+    break;
+  case 1:
+    mutate_insert(*mutant);
+    break;
+  case 2:
+    mutate_delete(*mutant);
+    break;
+  case 3:
+    mutate_modify(*mutant);
+    break;
+  default: 
+    throw std::logic_error("Error: incorrect mutation type");
+  }
+  return mutant;
+}
+Ruleset *RulesetGenetics::crossover(const Ruleset &r1, const Ruleset &r2)
+{
+  double merge_k = random_double()*2-0.5; //from -0.5 to 1.5
+  Ruleset *crs = new Ruleset();
+  
+  int dn = rand()%(CROSSOVER_RANDOMIZE_SIZE*2+1) - CROSSOVER_RANDOMIZE_SIZE;
+  int n1 = (r1.size() + r2.size()) / 2 + dn;
+  size_t n = (n1 > 2)? n1 : 2;
+  {
+    std::back_insert_iterator<Ruleset::RulesT> inserter(crs->rules);
+    std::copy(r1.rules.begin(), r1.rules.end(), inserter);
+    std::copy(r2.rules.begin(), r2.rules.end(), inserter);
+    for(Ruleset::RulesT::iterator i=crs->rules.begin(); i!=crs->rules.end();++i){
+      i->probability *= 0.5;
+    }
+  }
+  while( crs->size() > n ){
+    size_t j, j1;
+    crs->most_similar_rule_pair( j, j1 );
+
+    if (j1 >= crs->size() ) break;
+    double sp = crs->rules[j].probability + crs->rules[j1].probability;
+
+    //weighted probabilities
+    double wp1 = crs->rules[j].probability * merge_k;
+    double wp2 = crs->rules[j1].probability * (1-merge_k);
+
+    crs->rules[j].transform = merge_transforms(crs->rules[j].transform, 
+					       crs->rules[j1].transform,
+					       wp1 / (wp1 + wp2) );
+
+    crs->rules[j].probability = sp;
+    crs->rules.erase(crs->rules.begin() + j1 );
+  }
+  crs->update_probabilities();
+  return crs;
+}
+void RulesetGenetics::deallocate( Ruleset *g )
+{
+  delete g;
+};

@@ -18,8 +18,9 @@
 
 void render_sample_ruleset()
 {
+  RulesetGenetics genetics;
   srand( 11 ); //always the same
-  Ruleset *r = make_orphan();
+  Ruleset *r = genetics.orphan();
 
   PixelMap pix(800, 800);
 
@@ -50,9 +51,11 @@ int main( int argc, char *argv[] )
   }
   normalize_pixmap( pix1 );
   CosineMeasureFitness fitness( pix1, point_t(-1,-1), point_t(1,1) );
-  
+  RulesetGenetics genetics;
+
   GenePoolRecordT result = 
-    genetical_optimize( 10, //pool
+    genetical_optimize( genetics,
+			10, //pool
 			8, //orp
 			15, //mut
 			15, //cross
