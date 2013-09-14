@@ -71,7 +71,6 @@ void RulesetGenetics::mutate_global_noise(Ruleset &r)
   for (size_t i=0; i<r.rules.size(); ++i){
     random_modify_rule(r.rules[i], amount);
   }
-  r.update_probabilities();
 }
 void RulesetGenetics::mutate_insert(Ruleset &r)
 {
@@ -82,7 +81,6 @@ void RulesetGenetics::mutate_insert(Ruleset &r)
   t.offset = point_t(random_double()-0.5, random_double()-0.5);
   t.rot_scale( random_double()*3.1415926*2, random_double() );
 
-  r.update_probabilities();
 }
 
 void RulesetGenetics::mutate_delete(Ruleset &r)
@@ -92,7 +90,6 @@ void RulesetGenetics::mutate_delete(Ruleset &r)
   if (r.size() >= max_size) return;
   size_t idx = rand() % r.size();
   r.rules.erase(r.rules.begin()+idx);
-  r.update_probabilities();
 }
 
 void RulesetGenetics::mutate_modify(Ruleset &r)
@@ -101,7 +98,6 @@ void RulesetGenetics::mutate_modify(Ruleset &r)
   if (r.size() ==0) return;
   size_t idx = rand() % r.size();
   random_modify_rule( r.rules[idx], amount );
-  r.update_probabilities();
 }
 
 struct ByFitness{
@@ -244,6 +240,7 @@ CosineMeasureFitness::CosineMeasureFitness( const PixelMap &sample_, const point
   gamma = 5;
   RENDER_STEPS_PER_PIXEL = 3;
 }
+
 double CosineMeasureFitness::fitness(const Ruleset &rule)
 {
   canvas.fill(0);
@@ -263,6 +260,7 @@ Ruleset *RulesetGenetics::orphan()
   for(size_t i=0; i<n; ++i){
     mutate_insert( *orphan );
   }
+  orphan->update_probabilities();
   return orphan;
 }
 Ruleset *RulesetGenetics::clone(const Ruleset &g)
@@ -288,6 +286,8 @@ Ruleset *RulesetGenetics::mutant(const Ruleset &g)
   default: 
     throw std::logic_error("Error: incorrect mutation type");
   }
+  mutant->update_probabilities();
+
   return mutant;
 }
 Ruleset *RulesetGenetics::crossover(const Ruleset &r1, const Ruleset &r2)
