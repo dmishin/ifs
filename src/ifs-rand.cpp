@@ -53,6 +53,16 @@ int main( int argc, char *argv[] )
   CosineMeasureFitness fitness( pix1, point_t(-1,-1), point_t(1,1) );
   RulesetGenetics genetics;
 
+  GeneticalOptimizer optimizer(genetics, fitness);
+  optimizer.set_parameters(
+			10, //pool
+			8, //orp
+			15, //mut
+			15, //cross
+			50, //stop-if-no-change
+			10 );//death-after
+  optimizer.run(1000);
+  /*
   GenePoolRecordT result = 
     genetical_optimize( genetics,
 			10, //pool
@@ -62,22 +72,21 @@ int main( int argc, char *argv[] )
 			fitness,
 			10000,
 			50);
+  */
+
   std::cout<<"Genetical optimization finished, rendering showing the result"<<std::endl;
   PixelMap pix2(800, 800);
-
-  
-
 
   render_ruleset( pix2, 
 		  point_t(-1.5,-1.5),
 		  point_t(3,3),
-		  *result.genome,
+		  *optimizer.get_best().genome,
 		  pix2.width*pix2.height*100 );
   pix2.normalize(1);
   pix2.apply_gamma(5);
-
-  std::ofstream out("test-small.pgm", std::ios::binary | std::ios::out);  
+  
   {
+    std::ofstream out("test-small.pgm", std::ios::binary | std::ios::out);  
     PixelMapReader r(pix2);
     save_pgm( r, out);
   }
