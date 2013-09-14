@@ -25,13 +25,28 @@ struct GenePoolRecordT{
 };
 
 typedef std::vector<GenePoolRecordT> GenePoolT;
-
+class FitnessFunction;
 GenePoolRecordT genetical_optimize( size_t pool_size, 
 				    size_t orphans_per_generation, 
 				    size_t n_mutants, 
 				    size_t n_crossovers,
-				    PixelMap &sample, 
+				    FitnessFunction &fitness_function, 
 				    size_t generations,
 				    size_t stop_if_no_improvement_after);
+
+class FitnessFunction{
+public:
+  virtual double fitness(const Ruleset &rule)=0;
+};
+class CosineMeasureFitness: public FitnessFunction{
+  const PixelMap &sample;
+  PixelMap canvas;
+  point_t origin, size;
+  double gamma;
+public:
+  CosineMeasureFitness( const PixelMap &sample_, const point_t &p0, const point_t &p1 );
+  void set_gamma(double g){ gamma = g; };
+  virtual double fitness(const Ruleset &rule);
+};
 
 #endif

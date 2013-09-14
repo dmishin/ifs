@@ -49,17 +49,20 @@ int main( int argc, char *argv[] )
     read_pgm(ifile, w);
   }
   normalize_pixmap( pix1 );
+  CosineMeasureFitness fitness( pix1, point_t(-1,-1), point_t(1,1) );
   
   GenePoolRecordT result = 
     genetical_optimize( 10, //pool
 			8, //orp
 			15, //mut
 			15, //cross
-			pix1,
+			fitness,
 			30000,
 			50);
   std::cout<<"Genetical optimization finished, rendering showing the result"<<std::endl;
   PixelMap pix2(800, 800);
+
+  
 
 
   render_ruleset( pix2, 

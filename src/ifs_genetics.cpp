@@ -206,7 +206,7 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
 				    size_t orphans_per_generation, 
 				    size_t n_mutants, 
 				    size_t n_crossovers,
-				    PixelMap &sample, 
+				    FitnessFunction &fitness_func, 
 				    size_t generations,
 				    size_t stop_if_no_improvement_after)
 {
@@ -216,7 +216,6 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
   cout << "  orphans per generation:"<<orphans_per_generation<<endl;
   cout << "  mutants per generation:"<<n_mutants<<endl;
   cout << "  crossovers per generation:"<<n_crossovers<<endl;
-  PixelMap pix(sample.width, sample.height);
 
   GenePoolRecordT best;
   best.genome = NULL;
@@ -255,15 +254,7 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
     //Update fitness for those who has not it.
     for( GenePoolT::iterator i=pool.begin(); i!=pool.end(); ++i){
       if (i->fitness >= 0) continue;//already calculated
-      pix.fill(0);
-      render_ruleset( pix, 
-		      point_t(-1,-1),
-		      point_t(2,2),
-		      *(i->genome),
-		      pix.width*pix.height*RENDER_STEPS_PER_PIXEL );
-	  //pix.apply_treshold(RENDER_STEPS_PER_PIXEL * 0.5, 1);
-	  pix.apply_gamma(5);
-      i->fitness = cosine_distance(pix, sample);
+      i->fitness = fitness_func.fitness( *(i->genome) );
     }
     //Update best sample
     if (pool.front().fitness > best.fitness || best.fitness < 0){
@@ -325,4 +316,24 @@ GenePoolRecordT genetical_optimize( size_t pool_size,
     i->fitness = -1;
   }
   return best;
+}
+
+CosineMeasureFitness::CosineMeasureFitness( const PixelMap &sample_, const point_t &p0, const point_t &p1)
+  :sample(sample_)
+  ,canvas(sample.width, sample.height)
+{
+  origin = p0;
+  size = p1 - p0;
+  gamma = 5;
+}
+double CosineMeasureFitness::fitness(const Ruleset &rule)
+{
+  canvas.fill(0);
+  render_ruleset( canvas,
+		  origin, size,
+		  rule,
+		  canvas.width*canvas.height * RENDER_STEPS_PER_PIXEL );
+  //pix.apply_treshold(RENDER_STEPS_PER_PIXEL * 0.5, 1);
+  canvas.apply_gamma( gamma );
+  return cosine_distance(canvas, sample);
 }
