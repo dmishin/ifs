@@ -1,5 +1,6 @@
 #include <cmath>
 #include "pixelmap.hpp"
+#include "util.hpp"
 
 void PixelMap::normalize(PixelMap::pixel_t scale_to)
 {
@@ -41,6 +42,15 @@ void PixelMap::fill( pixel_t v )
   }
 }
 
+double PixelMap::norm2()const
+{
+  double s=0;
+  size_t n = pixels.size();
+  for(size_t i=0; i<n; ++i){
+    s += sqr(pixels[i]);
+  }
+  return sqrt(s);
+}
 PixelMap::pixel_t PixelMap::max_value()const
 {
   pixel_t v=0;

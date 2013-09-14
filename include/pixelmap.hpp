@@ -16,12 +16,14 @@ public:
   pixel_t &pixel_ref(int x, int y){ return pixels[pixel_idx(x,y)]; };
   inline bool contains( int x, int y )const;
   pixel_t max_value()const;
+  double norm2()const;
   void scale( double k );
   void normalize( pixel_t scale_to );
   void set_size(size_t w, size_t h){ width=w; height=h; pixels.resize(w*h);};
   void apply_gamma(double g);
   void apply_treshold(double h, double v);
   void swap(PixelMap &m);
+  
 };
 
 bool PixelMap::contains( int x, int y )const
