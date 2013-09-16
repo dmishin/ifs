@@ -2,25 +2,68 @@
 #define __IFS_GENETICS_HPP_INCLUDED__
 #include <iostream>
 
+typedef void *GenericGenomePtr;
+typedef const void *GenericGenomeCPtr;
+
+class GenericFitnessFunction{
+protected:
+	virtual double _fitness(GenericGenomeCPtr g)=0;
+	template <typename T> friend class GeneticalOptimizer;
+	friend class GenericGeneticalOptimizer;
+};
+
 /**FItness function evaluates genome and determines, how good it is.
    It must return positive value;
 */   
 template< typename Genome >
-class FitnessFunction{
+class FitnessFunction: public GenericFitnessFunction{
+protected:
+  virtual double _fitness(GenericGenomeCPtr g){return fitness(*(Genome*)g);};
 public:
   virtual double fitness(const Genome &rule)=0;
+  friend class GenericGeneticalOptimizer;
+};
+class GenericGenetics{
+protected:
+  virtual GenericGenomePtr _orphan()=0;
+  virtual GenericGenomePtr _clone(GenericGenomeCPtr g)=0;
+  virtual GenericGenomePtr _mutant(GenericGenomeCPtr g)=0;
+  virtual GenericGenomePtr _crossover(GenericGenomeCPtr g1, GenericGenomeCPtr g2)=0;
+  virtual void _deallocate( GenericGenomePtr )=0;
+  virtual void _to_stream( std::ostream & os, GenericGenomeCPtr g )=0;
+  friend class GenericGeneticalOptimizer;
+  friend class ShowGenericGenome;
 };
 
 /**Genetics is collection of operations over genomes.
  */
 template< typename Genome >
-class Genetics{
+class Genetics: public GenericGenetics{
+private:
+  const Genome *from_generic(GenericGenomeCPtr p)const{ return (const Genome*)p; };
+  Genome *from_generic(GenericGenomePtr p)const{ return (Genome*)p; };
+  GenericGenomePtr to_generic( Genome *p )const{ return (GenericGenomePtr)p; };
+
+protected:
+
+  virtual GenericGenomePtr _orphan()
+    {return to_generic(orphan()); };
+  virtual GenericGenomePtr _clone(GenericGenomeCPtr g)
+   {return to_generic(clone( *from_generic(g)));};
+  virtual GenericGenomePtr _mutant(GenericGenomeCPtr g)
+   {return to_generic(mutant( *from_generic(g) ));};
+  virtual GenericGenomePtr _crossover(GenericGenomeCPtr g1, GenericGenomeCPtr g2)
+  {return to_generic(crossover(*from_generic(g1), *from_generic(g2)));};
+  virtual void _deallocate( GenericGenomePtr g)
+    {deallocate( from_generic(g));};
+  virtual void _to_stream( std::ostream & os, GenericGenomeCPtr g ){to_stream(os, *from_generic(g));};
 public:
   virtual Genome *orphan()=0;
   virtual Genome *clone(const Genome &g)=0;
   virtual Genome *mutant(const Genome &g)=0;
   virtual Genome *crossover(const Genome &g1, const Genome &g2)=0;
   virtual void deallocate( Genome *g )=0;
+  virtual void to_stream(std::ostream &os, const Genome &g){ os<<"[genome]"; };
 };
 
 class Transform;
@@ -30,16 +73,28 @@ class Ruleset;
 Transform merge_transforms(const Transform &t1, const Transform &t2, double p);
 void normalize_pixmap( PixelMap &p );
 
-class GeneticalOptimizer{
+class ShowGenericGenome{
+	GenericGenomeCPtr genome;
+	GenericGenetics &genetics;
+public:
+	ShowGenericGenome(GenericGenomeCPtr genome_, GenericGenetics &genetics_):genome(genome_), genetics(genetics_){};
+	void to_stream(std::ostream &os)const{genetics._to_stream(os, genome);};
+};
+inline std::ostream & operator << (std::ostream &os, const ShowGenericGenome &show)
+{
+	show.to_stream(os);
+	return os;
+}
+class GenericGeneticalOptimizer{
 public:
   struct PoolRecord{
-    Ruleset *genome;
+    GenericGenomePtr genome;
     double fitness;
     std::string origin;
     size_t generation;
     PoolRecord():genome(NULL), fitness(-1){};
-    PoolRecord(Ruleset *g): genome(g), fitness(-1){};
-    PoolRecord(Ruleset *g, const std::string &o): genome(g), fitness(-1), origin(o){};
+    PoolRecord(GenericGenomePtr g): genome(g), fitness(-1){};
+    PoolRecord(GenericGenomePtr g, const std::string &o): genome(g), fitness(-1), origin(o){};
   };
   typedef std::vector<PoolRecord> PoolT;
 private:
@@ -51,8 +106,8 @@ private:
   size_t stop_if_no_improvement_after;
   size_t die_if_older_than;
 
-  Genetics<Ruleset> &genetics;
-  FitnessFunction<Ruleset> &fitness_function;
+  GenericGenetics &genetics;
+  GenericFitnessFunction &fitness_function;
   PoolT pool;
   PoolRecord best;
   size_t generation;
@@ -64,8 +119,8 @@ private:
   void update_fitness_values();
   void clear_pool();
 public:
-  GeneticalOptimizer(Genetics<Ruleset> &genetics_, FitnessFunction<Ruleset> &fitness_function_);
-  ~GeneticalOptimizer();
+  GenericGeneticalOptimizer(GenericGenetics &genetics_, GenericFitnessFunction &fitness_function_);
+  ~GenericGeneticalOptimizer();
   void set_parameters( size_t pool_size_,
 		       size_t orphans_per_generation_, 
 		       size_t n_mutants_, 
@@ -75,6 +130,14 @@ public:
   void run(size_t generations);
   const PoolRecord &get_best()const{ return best; };
 };
+
+template< typename Genome >
+class GeneticalOptimizer: public GenericGeneticalOptimizer{
+public:
+	GeneticalOptimizer(Genetics<Genome> &g, FitnessFunction<Genome> &f)
+		:GenericGeneticalOptimizer(g,f){};
+};
+
 class RulesetGenetics: public Genetics<Ruleset>
 {
 private:
@@ -96,6 +159,7 @@ public:
   virtual Ruleset *clone(const Ruleset &g);
   virtual Ruleset *mutant(const Ruleset &g);
   virtual Ruleset *crossover(const Ruleset &g1, const Ruleset &g2);
+  void to_stream( std::ostream &os, const Ruleset&r );
   virtual void deallocate( Ruleset *g );
   
 };
@@ -117,3 +181,4 @@ public:
 };
 
 #endif
+

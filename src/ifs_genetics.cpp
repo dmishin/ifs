@@ -210,12 +210,12 @@ RulesetGenetics::RulesetGenetics()
 }
 
 struct RecordsByFitness{
-  bool operator()(const GeneticalOptimizer::PoolRecord &r1, const GeneticalOptimizer::PoolRecord& r2)const{
+  bool operator()(const GenericGeneticalOptimizer::PoolRecord &r1, const GenericGeneticalOptimizer::PoolRecord& r2)const{
     return r1.fitness > r2.fitness;
   }
 };
 
-GeneticalOptimizer::GeneticalOptimizer(Genetics<Ruleset> &genetics_, FitnessFunction<Ruleset> &fitness_function_)
+GenericGeneticalOptimizer::GenericGeneticalOptimizer(GenericGenetics &genetics_, GenericFitnessFunction &fitness_function_)
   :genetics(genetics_)
   ,fitness_function(fitness_function_)
 {
@@ -229,7 +229,7 @@ GeneticalOptimizer::GeneticalOptimizer(Genetics<Ruleset> &genetics_, FitnessFunc
   best.fitness = -1;
   generation = 0;
 }
-void GeneticalOptimizer::set_parameters( size_t pool_size_,
+void GenericGeneticalOptimizer::set_parameters( size_t pool_size_,
 					 size_t orphans_per_generation_, 
 					 size_t n_mutants_, 
 					 size_t n_crossovers_,
@@ -244,51 +244,43 @@ void GeneticalOptimizer::set_parameters( size_t pool_size_,
   die_if_older_than = die_if_older_than_;
 }
 
-void GeneticalOptimizer::initialize_pool()
+void GenericGeneticalOptimizer::initialize_pool()
 {
   for(size_t i=0; i<pool_size; ++i){
-    pool.push_back( PoolRecord( genetics.orphan(), "initial orphan") );
+    pool.push_back( PoolRecord( genetics._orphan(), "initial orphan") );
     pool.back().generation = 0;
   }
 }
-void GeneticalOptimizer::add_mutant()
+void GenericGeneticalOptimizer::add_mutant()
 {
   size_t idx = rand()%pool_size;
-  pool.push_back( PoolRecord( genetics.mutant( *(pool[idx].genome) ),
+  pool.push_back( PoolRecord( genetics._mutant( pool[idx].genome ),
 			      "mutant") );
   pool.back().generation = generation;
 }
-void GeneticalOptimizer::add_crossover()
+void GenericGeneticalOptimizer::add_crossover()
 {
   size_t idx1 = rand()%pool_size;
   size_t idx2 = rand()%pool_size;
-  pool.push_back( PoolRecord( genetics.crossover( *(pool[idx1].genome),
-						  *(pool[idx2].genome) ),
+  pool.push_back( PoolRecord( genetics._crossover( pool[idx1].genome,
+						  pool[idx2].genome ),
 			      "crossover") );
   pool.back().generation = generation;
 }
-void GeneticalOptimizer::add_orphan()
+void GenericGeneticalOptimizer::add_orphan()
 {
-  pool.push_back( PoolRecord( genetics.orphan(), "orphan" ) );
+  pool.push_back( PoolRecord( genetics._orphan(), "orphan" ) );
   pool.back().generation = generation;
 }
-void GeneticalOptimizer::update_fitness_values()
+void GenericGeneticalOptimizer::update_fitness_values()
 {
   for( PoolT::iterator i=pool.begin(); i!=pool.end(); ++i){
     if (i->fitness >= 0) continue;//already calculated
-    i->fitness = fitness_function.fitness( *(i->genome) );
+    i->fitness = fitness_function._fitness( i->genome );
   }
 }
-std::ostream & operator << (std::ostream &os, const GeneticalOptimizer::PoolRecord &record)
-{
-  return
-    os<<record.fitness
-      <<" origin: "<<record.origin
-      <<" born: "<<record.generation
-      <<" sz:"<<record.genome->size();
-}
 
-void GeneticalOptimizer::run(size_t generations)
+void GenericGeneticalOptimizer::run(size_t generations)
 {
   using namespace std;
   cout << "  pool size:"<<pool_size<<endl
@@ -321,17 +313,21 @@ void GeneticalOptimizer::run(size_t generations)
     //Update best sample
     if (pool.front().fitness > best.fitness || best.fitness < 0){
       best = pool.front();
-      best.genome = genetics.clone(*best.genome);
+      best.genome = genetics._clone(best.genome);
     }
 
     //Remove the worst samples;
 
     std::cout <<"   Best in history :"<<std::endl
-	      <<"  "<<best<<std::endl
-	      <<"   Best 3 fitness:"<<std::endl;
+	      <<"  "<<best.generation<<" ";
+	genetics._to_stream(std::cout,best.genome);
+	std::cout<<std::endl
+		<<"   Best 3 fitness:"<<std::endl;
 
     for(size_t i=0; i<std::min((size_t)3,pool.size()); ++i){
-      std::cout<<"  "<<i<<" "<<pool[i]<<std::endl;
+      std::cout<<"  "<<i<<" "<<pool[i].generation<<" ";
+	  	genetics._to_stream(std::cout,pool[i].genome);
+		std::cout<<std::endl;
     }
 
     if( pool.front().fitness < pool.back().fitness )
@@ -343,7 +339,7 @@ void GeneticalOptimizer::run(size_t generations)
       size_t i=0;
       while(i < pool.size()){
 	if (generation - pool[i].generation > die_if_older_than){
-	  genetics.deallocate(pool[i].genome);
+	  genetics._deallocate(pool[i].genome);
 	  pool.erase(pool.begin()+i);
 	}else{
 	  i += 1;
@@ -354,7 +350,7 @@ void GeneticalOptimizer::run(size_t generations)
       for( PoolT::iterator i = pool.begin() + pool_size;
 	   i < pool.end();
 	   ++i ){
-	genetics.deallocate(i->genome);
+	genetics._deallocate(i->genome);
 	i->genome = NULL;
 	i->fitness = -1;
       }
@@ -372,7 +368,7 @@ void GeneticalOptimizer::run(size_t generations)
   }
 
 }
-void GeneticalOptimizer::clear_pool()
+void GenericGeneticalOptimizer::clear_pool()
 {
   for( PoolT::iterator i = pool.begin();
        i < pool.end();
@@ -384,7 +380,12 @@ void GeneticalOptimizer::clear_pool()
   pool.clear();
 }
 
-GeneticalOptimizer::~GeneticalOptimizer()
+GenericGeneticalOptimizer::~GenericGeneticalOptimizer()
 {
   clear_pool();
 };
+
+void RulesetGenetics::to_stream( std::ostream &os, const Ruleset&r )
+{
+    os<<" sz:"<<r.size();
+}

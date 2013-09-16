@@ -53,7 +53,7 @@ int main( int argc, char *argv[] )
   CosineMeasureFitness fitness( pix1, point_t(-1,-1), point_t(1,1) );
   RulesetGenetics genetics;
 
-  GeneticalOptimizer optimizer(genetics, fitness);
+  GeneticalOptimizer<Ruleset> optimizer(genetics, fitness);
   optimizer.set_parameters(
 			10, //pool
 			8, //orp
@@ -80,7 +80,7 @@ int main( int argc, char *argv[] )
   render_ruleset( pix2, 
 		  point_t(-1.5,-1.5),
 		  point_t(3,3),
-		  *optimizer.get_best().genome,
+		  *(Ruleset*)optimizer.get_best().genome,
 		  pix2.width*pix2.height*100 );
   pix2.normalize(1);
   pix2.apply_gamma(5);
