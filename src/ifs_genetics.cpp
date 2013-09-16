@@ -373,7 +373,7 @@ void GenericGeneticalOptimizer::clear_pool()
   for( PoolT::iterator i = pool.begin();
        i < pool.end();
        ++i ){
-    delete (i->genome);
+    genetics._deallocate(i->genome);
     i->genome = NULL;
     i->fitness = -1;
   }
