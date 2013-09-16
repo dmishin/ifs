@@ -30,7 +30,6 @@ protected:
   virtual GenericGenomePtr _mutant(GenericGenomeCPtr g)=0;
   virtual GenericGenomePtr _crossover(GenericGenomeCPtr g1, GenericGenomeCPtr g2)=0;
   virtual void _deallocate( GenericGenomePtr )=0;
-  virtual void _to_stream( std::ostream & os, GenericGenomeCPtr g )=0;
   friend class GenericGeneticalOptimizer;
   friend class ShowGenericGenome;
 };
@@ -56,14 +55,12 @@ protected:
   {return to_generic(crossover(*from_generic(g1), *from_generic(g2)));};
   virtual void _deallocate( GenericGenomePtr g)
     {deallocate( from_generic(g));};
-  virtual void _to_stream( std::ostream & os, GenericGenomeCPtr g ){to_stream(os, *from_generic(g));};
 public:
   virtual Genome *orphan()=0;
   virtual Genome *clone(const Genome &g)=0;
   virtual Genome *mutant(const Genome &g)=0;
   virtual Genome *crossover(const Genome &g1, const Genome &g2)=0;
   virtual void deallocate( Genome *g )=0;
-  virtual void to_stream(std::ostream &os, const Genome &g){ os<<"[genome]"; };
 };
 
 class Transform;
@@ -73,18 +70,6 @@ class Ruleset;
 Transform merge_transforms(const Transform &t1, const Transform &t2, double p);
 void normalize_pixmap( PixelMap &p );
 
-class ShowGenericGenome{
-	GenericGenomeCPtr genome;
-	GenericGenetics &genetics;
-public:
-	ShowGenericGenome(GenericGenomeCPtr genome_, GenericGenetics &genetics_):genome(genome_), genetics(genetics_){};
-	void to_stream(std::ostream &os)const{genetics._to_stream(os, genome);};
-};
-inline std::ostream & operator << (std::ostream &os, const ShowGenericGenome &show)
-{
-	show.to_stream(os);
-	return os;
-}
 class GenericGeneticalOptimizer{
 public:
   struct PoolRecord{
@@ -96,6 +81,14 @@ public:
     PoolRecord(GenericGenomePtr g): genome(g), fitness(-1){};
     PoolRecord(GenericGenomePtr g, const std::string &o): genome(g), fitness(-1), origin(o){};
   };
+
+  struct ShowRecord{
+    const GenericGeneticalOptimizer &opt;
+    const PoolRecord &record;
+    ShowRecord(const GenericGeneticalOptimizer &o, const PoolRecord &r):opt(o),record(r){};
+  };
+  ShowRecord show_record(const PoolRecord &r)const{ return ShowRecord(*this, r); };
+
   typedef std::vector<PoolRecord> PoolT;
 private:
   size_t pool_size; 
@@ -118,6 +111,8 @@ private:
   void add_orphan();
   void update_fitness_values();
   void clear_pool();
+protected:
+  virtual void genome_to_stream(std::ostream &os, GenericGenomeCPtr g)const=0;
 public:
   GenericGeneticalOptimizer(GenericGenetics &genetics_, GenericFitnessFunction &fitness_function_);
   ~GenericGeneticalOptimizer();
@@ -129,13 +124,20 @@ public:
 		       size_t die_if_older_than_);
   void run(size_t generations);
   const PoolRecord &get_best()const{ return best; };
+
+  friend std::ostream & operator <<(std::ostream &os, const GenericGeneticalOptimizer::ShowRecord &show);
 };
+
+std::ostream & operator <<(std::ostream &os, const GenericGeneticalOptimizer::ShowRecord &show);
 
 template< typename Genome >
 class GeneticalOptimizer: public GenericGeneticalOptimizer{
+protected:
+  virtual void genome_to_stream(std::ostream &os, GenericGenomeCPtr g)const{ genome_to_stream(os, *(Genome*)g); };
 public:
-	GeneticalOptimizer(Genetics<Genome> &g, FitnessFunction<Genome> &f)
-		:GenericGeneticalOptimizer(g,f){};
+  virtual void genome_to_stream(std::ostream &os, const Genome &g)const{ os<<"[genome]"; };
+  GeneticalOptimizer(Genetics<Genome> &g, FitnessFunction<Genome> &f)
+    :GenericGeneticalOptimizer(g,f){};
 };
 
 class RulesetGenetics: public Genetics<Ruleset>

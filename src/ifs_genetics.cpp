@@ -319,15 +319,11 @@ void GenericGeneticalOptimizer::run(size_t generations)
     //Remove the worst samples;
 
     std::cout <<"   Best in history :"<<std::endl
-	      <<"  "<<best.generation<<" ";
-	genetics._to_stream(std::cout,best.genome);
-	std::cout<<std::endl
-		<<"   Best 3 fitness:"<<std::endl;
+	      <<"  "<<show_record(best)<<std::endl
+	      <<"   Best 3 fitness:"<<std::endl;
 
     for(size_t i=0; i<std::min((size_t)3,pool.size()); ++i){
-      std::cout<<"  "<<i<<" "<<pool[i].generation<<" ";
-	  	genetics._to_stream(std::cout,pool[i].genome);
-		std::cout<<std::endl;
+      std::cout<<"  "<<i<<" "<<show_record(pool[i])<<std::endl;
     }
 
     if( pool.front().fitness < pool.back().fitness )
@@ -385,7 +381,11 @@ GenericGeneticalOptimizer::~GenericGeneticalOptimizer()
   clear_pool();
 };
 
-void RulesetGenetics::to_stream( std::ostream &os, const Ruleset&r )
+
+
+std::ostream & operator <<(std::ostream &os, const GenericGeneticalOptimizer::ShowRecord &show)
 {
-    os<<" sz:"<<r.size();
+  os<<"fit: "<<show.record.fitness<<" origin:"<<show.record.origin<<" born:"<<show.record.generation<<" ";
+  show.opt.genome_to_stream(os, show.record.genome);
+  return os;
 }
