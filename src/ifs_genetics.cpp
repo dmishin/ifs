@@ -53,15 +53,12 @@ void RulesetGenetics::random_modify_rule( Ruleset::Rule &r, double amount )
     Transform &t(r.transform); 
 
     t.offset += point_t(random_double()-0.5, random_double()-0.5) * amount;
-    t.t00 *= (1.0 + amount*(random_double()-0.5));
-    t.t01 *= (1.0 + amount*(random_double()-0.5));
-    t.t10 *= (1.0 + amount*(random_double()-0.5));
-    t.t11 *= (1.0 + amount*(random_double()-0.5));
+	double tamount = amount * std::max(std::max(fabs(t.t00),fabs(t.t01)),std::max(fabs(t.t10),fabs(t.t11)));
 
-    t.t00 += amount*(random_double()-0.5);
-    t.t01 += amount*(random_double()-0.5);
-    t.t10 += amount*(random_double()-0.5);
-    t.t11 += amount*(random_double()-0.5);
+    t.t00 += tamount*(random_double()-0.5);
+    t.t01 += tamount*(random_double()-0.5);
+    t.t10 += tamount*(random_double()-0.5);
+    t.t11 += tamount*(random_double()-0.5);
 }
 void RulesetGenetics::mutate_global_noise(Ruleset &r)
 {

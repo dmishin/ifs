@@ -1,7 +1,10 @@
 #include <cstdlib>
 #include <algorithm>
 #include <stdexcept>
+#include <string>
+
 #include "genetic_optim.hpp"
+
 GenericGeneticalOptimizer::GenericGeneticalOptimizer(GenericGenetics &genetics_, GenericFitnessFunction &fitness_function_)
   :genetics(genetics_)
   ,fitness_function(fitness_function_)
